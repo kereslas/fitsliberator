@@ -67,7 +67,7 @@
       <WarningLevel>Level1</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\resources;..\..\resources\windows;..\..\headers;..\..\intermediate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -90,6 +90,10 @@
     <Manifest>
       <AdditionalManifestFiles>..\..\resources\windows\FitsLiberator.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
+    <PreBuildEvent>
+      <Command>copy ..\..\..\cfitsio\project\Debug\cfitsio.lib ..\..\..\cfitsio\binaries\
+copy ..\..\..\cfitsio\project\Debug\cfitsio.dll ..\..\binaries\</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -111,7 +115,7 @@
       <WarningLevel>Level1</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\resources;..\..\resources\windows;..\..\headers;..\..\intermediate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -139,6 +143,10 @@
     <Manifest>
       <AdditionalManifestFiles>..\..\resources\windows\FitsLiberator.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
+    <PreBuildEvent>
+      <Command>copy ..\..\..\cfitsio\project\Release\cfitsio.lib ..\..\..\cfitsio\binaries\
+copy ..\..\..\cfitsio\project\Release\cfitsio.dll ..\..\binaries\</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\headers\Environment.h" />
