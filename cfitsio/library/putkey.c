@@ -72,12 +72,12 @@ int ffcrimll(fitsfile *fptr,    /* I - FITS file pointer           */
 /*--------------------------------------------------------------------------*/
 int ffcrtb(fitsfile *fptr,  /* I - FITS file pointer                        */
            int tbltype,     /* I - type of table to create                  */
-           LONGLONG naxis2,     /* I - number of rows in the table              */
+           LONGLONG naxis2, /* I - number of rows in the table              */
            int tfields,     /* I - number of columns in the table           */
            char **ttype,    /* I - name of each column                      */
            char **tform,    /* I - value of TFORMn keyword for each column  */
            char **tunit,    /* I - value of TUNITn keyword for each column  */
-           char *extnm,     /* I - value of EXTNAME keyword, if any         */
+           const char *extnm, /* I - value of EXTNAME keyword, if any         */
            int *status)     /* IO - error status                            */
 /*
   Create a table extension in a FITS file. 
@@ -187,16 +187,16 @@ int ffpktp(fitsfile *fptr,       /* I - FITS file pointer       */
 /*--------------------------------------------------------------------------*/
 int ffpky( fitsfile *fptr,     /* I - FITS file pointer        */
            int  datatype,      /* I - datatype of the value    */
-           char *keyname,      /* I - name of keyword to write */
+           const char *keyname,/* I - name of keyword to write */
            void *value,        /* I - keyword value            */
-           char *comm,         /* I - keyword comment          */
+           const char *comm,   /* I - keyword comment          */
            int  *status)       /* IO - error status            */
 /*
   Write (put) the keyword, value and comment into the FITS header.
   Writes a keyword value with the datatype specified by the 2nd argument.
 */
 {
-    char errmsg[81];
+    char errmsg[FLEN_ERRMSG];
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
@@ -236,7 +236,12 @@ int ffpky( fitsfile *fptr,     /* I - FITS file pointer        */
     }
     else if (datatype == TULONG)
     {
-        ffpkyg(fptr, keyname, (double) *(unsigned long *) value, 0,
+        ffpkyuj(fptr, keyname, (ULONGLONG) *(unsigned long *) value,
+               comm, status);
+    }
+    else if (datatype == TULONGLONG)
+    {
+        ffpkyuj(fptr, keyname, (ULONGLONG) *(ULONGLONG *) value,
                comm, status);
     }
     else if (datatype == TLONG)
@@ -265,7 +270,7 @@ int ffpky( fitsfile *fptr,     /* I - FITS file pointer        */
     }
     else
     {
-        sprintf(errmsg, "Bad keyword datatype code: %d (ffpky)", datatype);
+        snprintf(errmsg, FLEN_ERRMSG,"Bad keyword datatype code: %d (ffpky)", datatype);
         ffpmsg(errmsg);
         *status = BAD_DATATYPE;
     }
@@ -283,6 +288,7 @@ int ffprec(fitsfile *fptr,     /* I - FITS file pointer        */
     char tcard[FLEN_CARD];
     size_t len, ii;
     long nblocks;
+    int keylength;
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
@@ -301,15 +307,29 @@ int ffprec(fitsfile *fptr,     /* I - FITS file pointer        */
     tcard[80] = '\0';
 
     len = strlen(tcard);
+
+    /* silently replace any illegal characters with a space */
+    for (ii=0; ii < len; ii++)   
+        if (tcard[ii] < ' ' || tcard[ii] > 126) tcard[ii] = ' ';
+
     for (ii=len; ii < 80; ii++)    /* fill card with spaces if necessary */
         tcard[ii] = ' ';
 
-    for (ii=0; ii < 8; ii++)       /* make sure keyword name is uppercase */
+    keylength = strcspn(tcard, "=");   /* support for free-format keywords */
+    if (keylength == 80) keylength = 8;
+    
+    /* test for the common commentary keywords which by definition have 8-char names */
+    if ( !fits_strncasecmp( "COMMENT ", tcard, 8) || !fits_strncasecmp( "HISTORY ", tcard, 8) ||
+         !fits_strncasecmp( "        ", tcard, 8) || !fits_strncasecmp( "CONTINUE", tcard, 8) )
+	 keylength = 8;
+
+    for (ii=0; ii < keylength; ii++)       /* make sure keyword name is uppercase */
         tcard[ii] = toupper(tcard[ii]);
 
     fftkey(tcard, status);        /* test keyword name contains legal chars */
 
-    fftrec(tcard, status);          /* test rest of keyword for legal chars */
+/*  no need to do this any more, since any illegal characters have been removed
+    fftrec(tcard, status);  */        /* test rest of keyword for legal chars */
 
     ffmbyt(fptr, (fptr->Fptr)->headend, IGNORE_EOF, status); /* move to end */
 
@@ -322,8 +342,8 @@ int ffprec(fitsfile *fptr,     /* I - FITS file pointer        */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyu( fitsfile *fptr,     /* I - FITS file pointer        */
-            char *keyname,      /* I - name of keyword to write */
-            char *comm,         /* I - keyword comment          */
+            const char *keyname,/* I - name of keyword to write */
+            const char *comm,   /* I - keyword comment          */
             int  *status)       /* IO - error status            */
 /*
   Write (put) a null-valued keyword and comment into the FITS header.  
@@ -343,9 +363,9 @@ int ffpkyu( fitsfile *fptr,     /* I - FITS file pointer        */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkys( fitsfile *fptr,     /* I - FITS file pointer        */
-            char *keyname,      /* I - name of keyword to write */
-            char *value,        /* I - keyword value            */
-            char *comm,         /* I - keyword comment          */
+            const char *keyname,/* I - name of keyword to write */
+            const char *value,  /* I - keyword value            */
+            const char *comm,   /* I - keyword comment          */
             int  *status)       /* IO - error status            */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -360,6 +380,7 @@ int ffpkys( fitsfile *fptr,     /* I - FITS file pointer        */
         return(*status);
 
     ffs2c(value, valstring, status);   /* put quotes around the string */
+
     ffmkky(keyname, valstring, comm, card, status);  /* construct the keyword */
     ffprec(fptr, card, status);
 
@@ -367,9 +388,9 @@ int ffpkys( fitsfile *fptr,     /* I - FITS file pointer        */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
-            char *keyname,      /* I - name of keyword to write */
-            char *value,        /* I - keyword value            */
-            char *comm,         /* I - keyword comment          */
+            const char *keyname,/* I - name of keyword to write */
+            const char *value,  /* I - keyword value            */
+            const char *comm,   /* I - keyword comment          */
             int  *status)       /* IO - error status            */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -382,14 +403,20 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
 */
 {
     char valstring[FLEN_CARD];
-    char card[FLEN_CARD];
+    char card[FLEN_CARD], tmpkeyname[FLEN_CARD];
     char tstring[FLEN_CARD], *cptr;
     int next, remain, vlen, nquote, nchar, namelen, contin, tstatus = -1;
+    int commlen=0, nocomment = 0;
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
 
-    remain = maxvalue(strlen(value), 1); /* no. of chars to write (at least 1) */    
+    remain = maxvalue(strlen(value), 1); /* no. of chars to write (at least 1) */  
+    if (comm) { 
+       commlen = strlen(comm);
+       if (commlen > 47) commlen = 47;  /* only guarantee preserving the first 47 characters */
+    }
+
     /* count the number of single quote characters are in the string */
     tstring[0] = '\0';
     strncat(tstring, value, 68); /* copy 1st part of string to temp buff */
@@ -402,7 +429,10 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
         cptr = strchr(cptr, '\'');  /* search for another quote char */
     }
 
-    cptr = keyname;
+    strncpy(tmpkeyname, keyname, 80);
+    tmpkeyname[80] = '\0';
+    
+    cptr = tmpkeyname;
     while(*cptr == ' ')   /* skip over leading spaces in name */
         cptr++;
 
@@ -417,13 +447,7 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
     }
     else
     {
-        /* This a HIERARCH keyword */
-        if (FSTRNCMP(cptr, "HIERARCH ", 9) && 
-            FSTRNCMP(cptr, "hierarch ", 9))
-            nchar = 66 - nquote - namelen;
-        else
-            nchar = 75 - nquote - namelen;  /* don't count 'HIERARCH' twice */
-
+	   nchar = 80 - nquote - namelen - 5;
     }
 
     contin = 0;
@@ -433,7 +457,7 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
     {
         tstring[0] = '\0';
         strncat(tstring, &value[next], nchar); /* copy string to temp buff */
-        ffs2c(tstring, valstring, status);  /* put quotes around the string */
+        ffs2c(tstring, valstring, status);  /* expand quotes, and put quotes around the string */
 
         if (remain > nchar)   /* if string is continued, put & as last char */
         {
@@ -451,7 +475,11 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
 
         if (contin)           /* This is a CONTINUEd keyword */
         {
-           ffmkky("CONTINUE", valstring, comm, card, status); /* make keyword */
+           if (nocomment) {
+               ffmkky("CONTINUE", valstring, NULL, card, status); /* make keyword w/o comment */
+           } else {
+               ffmkky("CONTINUE", valstring, comm, card, status); /* make keyword */
+	   }
            strncpy(&card[8], "   ",  2);  /* overwrite the '=' */
         }
         else
@@ -464,6 +492,7 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
         contin = 1;
         remain -= nchar;
         next  += nchar;
+        nocomment = 0;
 
         if (remain > 0) 
         {
@@ -480,6 +509,23 @@ int ffpkls( fitsfile *fptr,     /* I - FITS file pointer        */
            }
            nchar = 68 - nquote;  /* max number of chars to write this time */
         }
+
+        /* make adjustment if necessary to allow reasonable room for a comment on last CONTINUE card 
+	   only need to do this if 
+	     a) there is a comment string, and
+	     b) the remaining value string characters could all fit on the next CONTINUE card, and
+	     c) there is not enough room on the next CONTINUE card for both the remaining value
+	        characters, and at least 47 characters of the comment string.
+	*/
+	
+        if (commlen > 0 && remain + nquote < 69 && remain + nquote + commlen > 65) 
+	{
+            if (nchar > 18) { /* only false if there are a rediculous number of quotes in the string */
+	        nchar = remain - 15;  /* force continuation onto another card, so that */
+		                      /* there is room for a comment up to 47 chara long */
+                nocomment = 1;  /* don't write the comment string this time */
+            }
+	}
     }
     return(*status);
 }
@@ -524,9 +570,9 @@ int ffplsw( fitsfile *fptr,     /* I - FITS file pointer  */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyl( fitsfile *fptr,     /* I - FITS file pointer        */
-            char *keyname,      /* I - name of keyword to write */
+            const char *keyname,/* I - name of keyword to write */
             int  value,         /* I - keyword value            */
-            char *comm,         /* I - keyword comment          */
+            const char *comm,   /* I - keyword comment          */
             int  *status)       /* IO - error status            */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -548,9 +594,9 @@ int ffpkyl( fitsfile *fptr,     /* I - FITS file pointer        */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyj( fitsfile *fptr,     /* I - FITS file pointer        */
-            char *keyname,      /* I - name of keyword to write */
+            const char *keyname,/* I - name of keyword to write */
             LONGLONG value,     /* I - keyword value            */
-            char *comm,         /* I - keyword comment          */
+            const char *comm,   /* I - keyword comment          */
             int  *status)       /* IO - error status            */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -570,11 +616,34 @@ int ffpkyj( fitsfile *fptr,     /* I - FITS file pointer        */
     return(*status);
 }
 /*--------------------------------------------------------------------------*/
+int ffpkyuj( fitsfile *fptr,     /* I - FITS file pointer        */
+            const char *keyname,/* I - name of keyword to write */
+            ULONGLONG value,     /* I - keyword value            */
+            const char *comm,   /* I - keyword comment          */
+            int  *status)       /* IO - error status            */
+/*
+  Write (put) the keyword, value and comment into the FITS header.
+  Writes an integer keyword value.
+*/
+{
+    char valstring[FLEN_VALUE];
+    char card[FLEN_CARD];
+
+    if (*status > 0)           /* inherit input status value if > 0 */
+        return(*status);
+
+    ffu2c(value, valstring, status);   /* convert to formatted string */
+    ffmkky(keyname, valstring, comm, card, status);  /* construct the keyword*/
+    ffprec(fptr, card, status);  /* write the keyword*/
+
+    return(*status);
+}
+/*--------------------------------------------------------------------------*/
 int ffpkyf( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             float value,         /* I - keyword value                       */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -595,10 +664,10 @@ int ffpkyf( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkye( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             float value,         /* I - keyword value                       */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -619,10 +688,10 @@ int ffpkye( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyg( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             double value,        /* I - keyword value                       */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -642,10 +711,10 @@ int ffpkyg( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyd( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             double value,        /* I - keyword value                       */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -665,10 +734,10 @@ int ffpkyd( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyc( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             float *value,        /* I - keyword value (real, imaginary)     */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -683,9 +752,19 @@ int ffpkyc( fitsfile *fptr,      /* I - FITS file pointer                   */
 
     strcpy(valstring, "(" );
     ffr2e(value[0], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+2 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkyc)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ", ");
     ffr2e(value[1], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+1 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkyc)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ")");
 
@@ -696,10 +775,10 @@ int ffpkyc( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkym( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             double *value,       /* I - keyword value (real, imaginary)     */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -714,9 +793,19 @@ int ffpkym( fitsfile *fptr,      /* I - FITS file pointer                   */
 
     strcpy(valstring, "(" );
     ffd2e(value[0], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+2 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkym)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ", ");
     ffd2e(value[1], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+1 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkym)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ")");
 
@@ -727,10 +816,10 @@ int ffpkym( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkfc( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             float *value,        /* I - keyword value (real, imaginary)     */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -745,9 +834,19 @@ int ffpkfc( fitsfile *fptr,      /* I - FITS file pointer                   */
 
     strcpy(valstring, "(" );
     ffr2f(value[0], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+2 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkfc)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ", ");
     ffr2f(value[1], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+1 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkfc)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ")");
 
@@ -758,10 +857,10 @@ int ffpkfc( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkfm( fitsfile *fptr,      /* I - FITS file pointer                   */
-            char  *keyname,      /* I - name of keyword to write            */
+            const char  *keyname,/* I - name of keyword to write            */
             double *value,       /* I - keyword value (real, imaginary)     */
             int   decim,         /* I - number of decimal places to display */
-            char  *comm,         /* I - keyword comment                     */
+            const char  *comm,   /* I - keyword comment                     */
             int   *status)       /* IO - error status                       */
 /*
   Write (put) the keyword, value and comment into the FITS header.
@@ -776,9 +875,19 @@ int ffpkfm( fitsfile *fptr,      /* I - FITS file pointer                   */
 
     strcpy(valstring, "(" );
     ffd2f(value[0], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+2 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkfm)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ", ");
     ffd2f(value[1], decim, tmpstring, status); /* convert to string */
+    if (strlen(valstring)+strlen(tmpstring)+1 > FLEN_VALUE-1)
+    {
+       ffpmsg("Error converting complex to string (ffpkfm)");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, tmpstring);
     strcat(valstring, ")");
 
@@ -789,10 +898,10 @@ int ffpkfm( fitsfile *fptr,      /* I - FITS file pointer                   */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkyt( fitsfile *fptr,      /* I - FITS file pointer        */
-            char  *keyname,      /* I - name of keyword to write */
+            const char  *keyname,/* I - name of keyword to write */
             long  intval,        /* I - integer part of value    */
             double fraction,     /* I - fractional part of value */
-            char  *comm,         /* I - keyword comment          */
+            const char  *comm,   /* I - keyword comment          */
             int   *status)       /* IO - error status            */
 /*
   Write (put) a 'triple' precision keyword where the integer and
@@ -817,6 +926,11 @@ int ffpkyt( fitsfile *fptr,      /* I - FITS file pointer        */
     ffd2f(fraction, 16, fstring, status);  /* convert to 16 decimal string */
 
     cptr = strchr(fstring, '.');    /* find the decimal point */
+    if (strlen(valstring)+strlen(cptr) > FLEN_VALUE-1)
+    {
+       ffpmsg("converted numerical string too long");
+       return(*status=BAD_F2C);
+    }
     strcat(valstring, cptr);    /* append the fraction to the integer */
 
     ffmkky(keyname, valstring, comm, card, status);  /* construct the keyword*/
@@ -923,19 +1037,19 @@ int ffverifydate(int year,          /* I - year (0 - 9999)           */
 */
 {
     int ndays[] = {0,31,28,31,30,31,30,31,31,30,31,30,31};
-    char errmsg[81];
+    char errmsg[FLEN_ERRMSG];
     
 
     if (year < 0 || year > 9999)
     {
-       sprintf(errmsg, 
+       snprintf(errmsg, FLEN_ERRMSG,
        "input year value = %d is out of range 0 - 9999", year);
        ffpmsg(errmsg);
        return(*status = BAD_DATE);
     }
     else if (month < 1 || month > 12)
     {
-       sprintf(errmsg, 
+       snprintf(errmsg, FLEN_ERRMSG,
        "input month value = %d is out of range 1 - 12", month);
        ffpmsg(errmsg);
        return(*status = BAD_DATE);
@@ -944,7 +1058,7 @@ int ffverifydate(int year,          /* I - year (0 - 9999)           */
     if (ndays[month] == 31) {
         if (day < 1 || day > 31)
         {
-           sprintf(errmsg, 
+           snprintf(errmsg, FLEN_ERRMSG,
            "input day value = %d is out of range 1 - 31 for month %d", day, month);
            ffpmsg(errmsg);
            return(*status = BAD_DATE);
@@ -952,7 +1066,7 @@ int ffverifydate(int year,          /* I - year (0 - 9999)           */
     } else if (ndays[month] == 30) {
         if (day < 1 || day > 30)
         {
-           sprintf(errmsg, 
+           snprintf(errmsg, FLEN_ERRMSG,
            "input day value = %d is out of range 1 - 30 for month %d", day, month);
            ffpmsg(errmsg);
            return(*status = BAD_DATE);
@@ -968,11 +1082,11 @@ int ffverifydate(int year,          /* I - year (0 - 9999)           */
 	        if ((year % 4 == 0 && year % 100 != 0 ) || year % 400 == 0)
 		   return (*status);
 		   
- 	        sprintf(errmsg, 
+ 	        snprintf(errmsg, FLEN_ERRMSG,
            "input day value = %d is out of range 1 - 28 for February %d (not leap year)", day, year);
                 ffpmsg(errmsg);
 	    } else {
-                sprintf(errmsg, 
+                snprintf(errmsg, FLEN_ERRMSG,
                 "input day value = %d is out of range 1 - 28 (or 29) for February", day);
                 ffpmsg(errmsg);
 	    }
@@ -1162,7 +1276,7 @@ int fftm2s(int year,          /* I - year (0 - 9999)           */
 */
 {
     int width;
-    char errmsg[81];
+    char errmsg[FLEN_ERRMSG];
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
@@ -1180,28 +1294,28 @@ int fftm2s(int year,          /* I - year (0 - 9999)           */
 
     if (hour < 0 || hour > 23)
     {
-       sprintf(errmsg, 
+       snprintf(errmsg, FLEN_ERRMSG,
        "input hour value is out of range 0 - 23: %d (fftm2s)", hour);
        ffpmsg(errmsg);
        return(*status = BAD_DATE);
     }
     else if (minute < 0 || minute > 59)
     {
-       sprintf(errmsg, 
+       snprintf(errmsg, FLEN_ERRMSG,
        "input minute value is out of range 0 - 59: %d (fftm2s)", minute);
        ffpmsg(errmsg);
        return(*status = BAD_DATE);
     }
     else if (second < 0. || second >= 61)
     {
-       sprintf(errmsg, 
+       snprintf(errmsg, FLEN_ERRMSG,
        "input second value is out of range 0 - 60.999: %f (fftm2s)", second);
        ffpmsg(errmsg);
        return(*status = BAD_DATE);
     }
     else if (decimals > 25)
     {
-       sprintf(errmsg, 
+       snprintf(errmsg, FLEN_ERRMSG,
        "input decimals value is out of range 0 - 25: %d (fftm2s)", decimals);
        ffpmsg(errmsg);
        return(*status = BAD_DATE);
@@ -1247,7 +1361,7 @@ int ffs2tm(char *datestr,     /* I - date string: "YYYY-MM-DD"    */
 */
 {
     int slen;
-    char errmsg[81];
+    char errmsg[FLEN_ERRMSG];
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
@@ -1357,7 +1471,7 @@ int ffs2tm(char *datestr,     /* I - date string: "YYYY-MM-DD"    */
     if (hour)
        if (*hour < 0 || *hour > 23)
        {
-          sprintf(errmsg, 
+          snprintf(errmsg,FLEN_ERRMSG, 
           "hour value is out of range 0 - 23: %d (ffs2tm)", *hour);
           ffpmsg(errmsg);
           return(*status = BAD_DATE);
@@ -1366,7 +1480,7 @@ int ffs2tm(char *datestr,     /* I - date string: "YYYY-MM-DD"    */
     if (minute)
        if (*minute < 0 || *minute > 59)
        {
-          sprintf(errmsg, 
+          snprintf(errmsg, FLEN_ERRMSG,
           "minute value is out of range 0 - 59: %d (ffs2tm)", *minute);
           ffpmsg(errmsg);
           return(*status = BAD_DATE);
@@ -1375,7 +1489,7 @@ int ffs2tm(char *datestr,     /* I - date string: "YYYY-MM-DD"    */
     if (second)
        if (*second < 0 || *second >= 61.)
        {
-          sprintf(errmsg, 
+          snprintf(errmsg, FLEN_ERRMSG,
           "second value is out of range 0 - 60.9999: %f (ffs2tm)", *second);
           ffpmsg(errmsg);
           return(*status = BAD_DATE);
@@ -1419,7 +1533,7 @@ int ffgsdt( int *day, int *month, int *year, int *status )
 }
 /*--------------------------------------------------------------------------*/
 int ffpkns( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             char *value[],      /* I - array of pointers to keyword values  */
@@ -1479,7 +1593,7 @@ int ffpkns( fitsfile *fptr,     /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpknl( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             int  *value,        /* I - array of keyword values              */
@@ -1540,7 +1654,7 @@ int ffpknl( fitsfile *fptr,     /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpknj( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             long *value,        /* I - array of keyword values              */
@@ -1598,7 +1712,7 @@ int ffpknj( fitsfile *fptr,     /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpknjj( fitsfile *fptr,    /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             LONGLONG *value,    /* I - array of keyword values              */
@@ -1656,7 +1770,7 @@ int ffpknjj( fitsfile *fptr,    /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpknf( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             float *value,       /* I - array of keyword values              */
@@ -1715,7 +1829,7 @@ int ffpknf( fitsfile *fptr,     /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkne( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             float *value,       /* I - array of keyword values              */
@@ -1774,7 +1888,7 @@ int ffpkne( fitsfile *fptr,     /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpkng( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             double *value,      /* I - array of keyword values              */
@@ -1833,7 +1947,7 @@ int ffpkng( fitsfile *fptr,     /* I - FITS file pointer                    */
 }
 /*--------------------------------------------------------------------------*/
 int ffpknd( fitsfile *fptr,     /* I - FITS file pointer                    */
-            char *keyroot,      /* I - root name of keywords to write       */
+            const char *keyroot,      /* I - root name of keywords to write       */
             int  nstart,        /* I - starting index number                */
             int  nkey,          /* I - number of keywords to write          */
             double *value,      /* I - array of keyword values              */
@@ -1901,7 +2015,7 @@ int ffptdm( fitsfile *fptr, /* I - FITS file pointer                        */
 */
 {
     char keyname[FLEN_KEYWORD], tdimstr[FLEN_VALUE], comm[FLEN_COMMENT];
-    char value[80], message[81];
+    char value[80], message[FLEN_ERRMSG];
     int ii;
     long totalpix = 1, repeat;
     tcolumn *colptr;
@@ -1948,7 +2062,13 @@ int ffptdm( fitsfile *fptr, /* I - FITS file pointer                        */
             return(*status = BAD_TDIM);
         }
 
-        sprintf(value, "%ld", naxes[ii]);
+        snprintf(value, 80,"%ld", naxes[ii]);
+        /* This will either be followed by a ',' or ')'. */
+        if (strlen(tdimstr)+strlen(value)+1 > FLEN_VALUE-1)
+        {
+            ffpmsg("TDIM string too long (ffptdm)");
+            return(*status = BAD_TDIM);
+        }
         strcat(tdimstr, value);     /* append the axis size */
 
         totalpix *= naxes[ii];
@@ -1969,7 +2089,7 @@ int ffptdm( fitsfile *fptr, /* I - FITS file pointer                        */
 
       if (*status > 0 || repeat != totalpix)
       {
-        sprintf(message,
+        snprintf(message,FLEN_ERRMSG,
         "column vector length, %ld, does not equal TDIMn array size, %ld",
         (long) colptr->trepeat, totalpix);
         ffpmsg(message);
@@ -2045,8 +2165,13 @@ int ffptdmll( fitsfile *fptr, /* I - FITS file pointer                      */
         /* cast to double because the 64-bit int conversion character in */
         /* sprintf is platform dependent ( %lld, %ld, %I64d )            */
 
-        sprintf(value, "%.0f", (double) naxes[ii]);
-
+        snprintf(value, 80, "%.0f", (double) naxes[ii]);
+        
+        if (strlen(tdimstr)+strlen(value)+1 > FLEN_VALUE-1)
+        {
+            ffpmsg("TDIM string too long (ffptdmll)");
+            return(*status = BAD_TDIM);
+        }
         strcat(tdimstr, value);     /* append the axis size */
 
         totalpix *= naxes[ii];
@@ -2067,7 +2192,7 @@ int ffptdmll( fitsfile *fptr, /* I - FITS file pointer                      */
 
       if (*status > 0 || repeat != totalpix)
       {
-        sprintf(message,
+        snprintf(message,FLEN_ERRMSG,
         "column vector length, %.0f, does not equal TDIMn array size, %.0f",
         (double) (colptr->trepeat), (double) totalpix);
         ffpmsg(message);
@@ -2160,6 +2285,7 @@ int ffphprll( fitsfile *fptr, /* I - FITS file pointer                        */
     int ii;
     long longbitpix, tnaxes[20];
     char name[FLEN_KEYWORD], comm[FLEN_COMMENT], message[FLEN_ERRMSG];
+    char card[FLEN_CARD];
 
     if (*status > 0)
         return(*status);
@@ -2206,6 +2332,8 @@ int ffphprll( fitsfile *fptr, /* I - FITS file pointer                        */
         longbitpix = SHORT_IMG;
     else if (longbitpix == ULONG_IMG)
         longbitpix = LONG_IMG;
+    else if (longbitpix == ULONGLONG_IMG)
+        longbitpix = LONGLONG_IMG;
     else if (longbitpix == SBYTE_IMG)
         longbitpix = BYTE_IMG;
 
@@ -2213,7 +2341,7 @@ int ffphprll( fitsfile *fptr, /* I - FITS file pointer                        */
         longbitpix != LONG_IMG && longbitpix != LONGLONG_IMG &&
         longbitpix != FLOAT_IMG && longbitpix != DOUBLE_IMG)
     {
-        sprintf(message,
+        snprintf(message,FLEN_ERRMSG,
         "Illegal value for BITPIX keyword: %d", bitpix);
         ffpmsg(message);
         return(*status = BAD_BITPIX);
@@ -2225,7 +2353,7 @@ int ffphprll( fitsfile *fptr, /* I - FITS file pointer                        */
 
     if (naxis < 0 || naxis > 999)
     {
-        sprintf(message,
+        snprintf(message,FLEN_ERRMSG,
         "Illegal value for NAXIS keyword: %d", naxis);
         ffpmsg(message);
         return(*status = BAD_NAXIS);
@@ -2239,13 +2367,13 @@ int ffphprll( fitsfile *fptr, /* I - FITS file pointer                        */
     {
         if (naxes[ii] < 0)
         {
-            sprintf(message,
+            snprintf(message,FLEN_ERRMSG,
             "Illegal negative value for NAXIS%d keyword: %.0f", ii + 1, (double) (naxes[ii]));
             ffpmsg(message);
             return(*status = BAD_NAXES);
         }
 
-        sprintf(&comm[20], "%d", ii + 1);
+        snprintf(&comm[20], FLEN_COMMENT-20,"%d", ii + 1);
         ffkeyn("NAXIS", ii + 1, name, status);
         ffpkyj(fptr, name, naxes[ii], comm, status);
     }
@@ -2333,6 +2461,13 @@ int ffphprll( fitsfile *fptr, /* I - FITS file pointer                        */
         strcpy(comm, "default scaling factor");
         ffpkyg(fptr, "BSCALE", 1.0, 0, comm, status);
     }
+    else if (bitpix == ULONGLONG_IMG)
+    {
+        strcpy(card,"BZERO   =  9223372036854775808 / offset data range to that of unsigned long long");
+        ffprec(fptr, card, status);
+        strcpy(comm, "default scaling factor");
+        ffpkyg(fptr, "BSCALE", 1.0, 0, comm, status);
+    }
     else if (bitpix == SBYTE_IMG)
     {
         strcpy(comm, "offset data range to that of signed byte");
@@ -2351,7 +2486,7 @@ int ffphtb(fitsfile *fptr,  /* I - FITS file pointer                        */
            long *tbcol,     /* I - byte offset in row to each column        */
            char **tform,    /* I - value of TFORMn keyword for each column  */
            char **tunit,    /* I - value of TUNITn keyword for each column  */
-           char *extnm,   /* I - value of EXTNAME keyword, if any         */
+           const char *extnmx,   /* I - value of EXTNAME keyword, if any         */
            int *status)     /* IO - error status                            */
 /*
   Put required Header keywords into the ASCII TaBle:
@@ -2359,7 +2494,7 @@ int ffphtb(fitsfile *fptr,  /* I - FITS file pointer                        */
 {
     int ii, ncols, gotmem = 0;
     long rowlen; /* must be 'long' because it is passed to ffgabc */
-    char tfmt[30], name[FLEN_KEYWORD], comm[FLEN_COMMENT];
+    char tfmt[30], name[FLEN_KEYWORD], comm[FLEN_COMMENT], extnm[FLEN_VALUE];
 
     if (fptr->HDUposition != (fptr->Fptr)->curhdu)
         ffmahd(fptr, (fptr->HDUposition) + 1, NULL, status);
@@ -2375,6 +2510,10 @@ int ffphtb(fitsfile *fptr,  /* I - FITS file pointer                        */
     else if (tfields < 0 || tfields > 999)
         return(*status = BAD_TFIELDS);
     
+    extnm[0] = '\0';
+    if (extnmx)
+        strncat(extnm, extnmx, FLEN_VALUE-1);
+
     rowlen = (long) naxis1;
 
     if (!tbcol || !tbcol[0] || (!naxis1 && tfields)) /* spacing not defined? */
@@ -2407,7 +2546,7 @@ int ffphtb(fitsfile *fptr,  /* I - FITS file pointer                        */
     {
         if ( *(ttype[ii]) )  /* optional TTYPEn keyword */
         {
-          sprintf(comm, "label for field %3d", ii + 1);
+          snprintf(comm, FLEN_COMMENT,"label for field %3d", ii + 1);
           ffkeyn("TTYPE", ii + 1, name, status);
           ffpkys(fptr, name, ttype[ii], comm, status);
         }
@@ -2415,10 +2554,16 @@ int ffphtb(fitsfile *fptr,  /* I - FITS file pointer                        */
         if (tbcol[ii] < 1 || tbcol[ii] > rowlen)
            *status = BAD_TBCOL;
 
-        sprintf(comm, "beginning column of field %3d", ii + 1);
+        snprintf(comm, FLEN_COMMENT,"beginning column of field %3d", ii + 1);
         ffkeyn("TBCOL", ii + 1, name, status);
         ffpkyj(fptr, name, tbcol[ii], comm, status);
 
+        if (strlen(tform[ii]) > 29)
+        {
+          ffpmsg("Error: ASCII table TFORM code is too long (ffphtb)");
+          *status = BAD_TFORM;
+          break;
+        }
         strcpy(tfmt, tform[ii]);  /* required TFORMn keyword */
         ffupch(tfmt);
         ffkeyn("TFORM", ii + 1, name, status);
@@ -2437,12 +2582,9 @@ int ffphtb(fitsfile *fptr,  /* I - FITS file pointer                        */
             break;       /* abort loop on error */
     }
 
-    if (extnm)
-    {
-      if (extnm[0])       /* optional EXTNAME keyword */
+    if (extnm[0])       /* optional EXTNAME keyword */
         ffpkys(fptr, "EXTNAME", extnm,
                "name of this ASCII table extension", status);
-    }
 
     if (*status > 0)
         ffpmsg("Failed to write ASCII table header keywords (ffphtb)");
@@ -2459,7 +2601,7 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
            char **ttype,    /* I - name of each column                      */
            char **tform,    /* I - value of TFORMn keyword for each column  */
            char **tunit,    /* I - value of TUNITn keyword for each column  */
-           char *extnm,   /* I - value of EXTNAME keyword, if any         */
+           const char *extnmx,   /* I - value of EXTNAME keyword, if any         */
            LONGLONG pcount,     /* I - size of the variable length heap area    */
            int *status)     /* IO - error status                            */
 /*
@@ -2470,8 +2612,9 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
     long repeat, width;
     LONGLONG naxis1;
 
-    char tfmt[30], name[FLEN_KEYWORD], comm[FLEN_COMMENT];
-    char *cptr;
+    char tfmt[30], name[FLEN_KEYWORD], comm[FLEN_COMMENT], extnm[FLEN_VALUE];
+    char *cptr, card[FLEN_CARD];
+    tcolumn *colptr;
 
     if (*status > 0)
         return(*status);
@@ -2488,6 +2631,10 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
     else if (tfields < 0 || tfields > 999)
         return(*status = BAD_TFIELDS);
 
+    extnm[0] = '\0';
+    if (extnmx)
+        strncat(extnm, extnmx, FLEN_VALUE-1);
+
     ffpkys(fptr, "XTENSION", "BINTABLE", "binary table extension", status);
     ffpkyj(fptr, "BITPIX", 8, "8-bit bytes", status);
     ffpkyj(fptr, "NAXIS", 2, "2-dimensional binary table", status);
@@ -2503,7 +2650,8 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
             naxis1 += (repeat + 7) / 8;
         else if (datatype > 0)
             naxis1 += repeat * (datatype / 10);
-        else if (tform[ii][0] == 'P' || tform[ii][1] == 'P')
+        else if (tform[ii][0] == 'P' || tform[ii][1] == 'P'||
+                 tform[ii][0] == 'p' || tform[ii][1] == 'p')
            /* this is a 'P' variable length descriptor (neg. datatype) */
             naxis1 += 8;
         else
@@ -2530,11 +2678,17 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
     {
         if ( *(ttype[ii]) )  /* optional TTYPEn keyword */
         {
-          sprintf(comm, "label for field %3d", ii + 1);
+          snprintf(comm, FLEN_COMMENT,"label for field %3d", ii + 1);
           ffkeyn("TTYPE", ii + 1, name, status);
           ffpkys(fptr, name, ttype[ii], comm, status);
         }
 
+        if (strlen(tform[ii]) > 29)
+        {
+          ffpmsg("Error: BIN table TFORM code is too long (ffphbn)");
+          *status = BAD_TFORM;
+          break;
+        }
         strcpy(tfmt, tform[ii]);  /* required TFORMn keyword */
         ffupch(tfmt);
 
@@ -2582,6 +2736,8 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
            strcat(comm, ": 8-byte INTEGER");
         else if (datatype == TULONG)
            strcat(comm, ": 4-byte INTEGER");
+        else if (datatype == TULONGLONG)
+           strcat(comm, ": 8-byte INTEGER");
         else if (datatype == TFLOAT)
            strcat(comm, ": 4-byte REAL");
         else if (datatype == TDOUBLE)
@@ -2653,6 +2809,27 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
            strcpy(comm, "data are not scaled");
            ffpkyg(fptr, name, 1., 0, comm, status);
         }
+        else if (abs(datatype) == TULONGLONG) 
+        {	   
+           /* Replace the 'W' with an 'K' in the TFORMn code */
+           cptr = tfmt;
+           while (*cptr != 'W') 
+              cptr++;
+
+           *cptr = 'K';
+           ffpkys(fptr, name, tfmt, comm, status);
+
+           /* write the TZEROn and TSCALn keywords */
+           ffkeyn("TZERO", ii + 1, card, status);
+           strcat(card, "     ");  /* make sure name is >= 8 chars long */
+           *(card+8) = '\0';
+	   strcat(card, "=  9223372036854775808 / offset for unsigned integers");
+	   fits_write_record(fptr, card, status);
+
+           ffkeyn("TSCAL", ii + 1, name, status);
+           strcpy(comm, "data are not scaled");
+           ffpkyg(fptr, name, 1., 0, comm, status);
+        }
         else
         {
            ffpkys(fptr, name, tfmt, comm, status);
@@ -2672,12 +2849,9 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
             break;       /* abort loop on error */
     }
 
-    if (extnm)
-    {
-      if (extnm[0])       /* optional EXTNAME keyword */
+    if (extnm[0])       /* optional EXTNAME keyword */
         ffpkys(fptr, "EXTNAME", extnm,
                "name of this binary table extension", status);
-    }
 
     if (*status > 0)
         ffpmsg("Failed to write binary table header keywords (ffphbn)");
@@ -2686,7 +2860,7 @@ int ffphbn(fitsfile *fptr,  /* I - FITS file pointer                        */
 }
 /*--------------------------------------------------------------------------*/
 int ffphext(fitsfile *fptr,  /* I - FITS file pointer                       */
-           char *xtension,   /* I - value for the XTENSION keyword          */
+           const char *xtensionx,   /* I - value for the XTENSION keyword          */
            int bitpix,       /* I - value for the BIXPIX keyword            */
            int naxis,        /* I - value for the NAXIS keyword             */
            long naxes[],     /* I - value for the NAXISn keywords           */
@@ -2697,7 +2871,7 @@ int ffphext(fitsfile *fptr,  /* I - FITS file pointer                       */
   Put required Header keywords into a conforming extension:
 */
 {
-    char message[FLEN_ERRMSG],comm[81], name[20];
+    char message[FLEN_ERRMSG],comm[81], name[20], xtension[FLEN_VALUE];
     int ii;
  
     if (fptr->HDUposition != (fptr->Fptr)->curhdu)
@@ -2710,11 +2884,14 @@ int ffphext(fitsfile *fptr,  /* I - FITS file pointer                       */
 
     if (naxis < 0 || naxis > 999)
     {
-        sprintf(message,
+        snprintf(message,FLEN_ERRMSG,
         "Illegal value for NAXIS keyword: %d", naxis);
         ffpmsg(message);
         return(*status = BAD_NAXIS);
     }
+
+    xtension[0] = '\0';
+    strncat(xtension, xtensionx, FLEN_VALUE-1);
 
     ffpkys(fptr, "XTENSION", xtension, "extension type", status);
     ffpkyj(fptr, "BITPIX",   bitpix,   "number of bits per data pixel", status);
@@ -2725,13 +2902,13 @@ int ffphext(fitsfile *fptr,  /* I - FITS file pointer                       */
     {
         if (naxes[ii] < 0)
         {
-            sprintf(message,
+            snprintf(message,FLEN_ERRMSG,
             "Illegal negative value for NAXIS%d keyword: %.0f", ii + 1, (double) (naxes[ii]));
             ffpmsg(message);
             return(*status = BAD_NAXES);
         }
 
-        sprintf(&comm[20], "%d", ii + 1);
+        snprintf(&comm[20], 61, "%d", ii + 1);
         ffkeyn("NAXIS", ii + 1, name, status);
         ffpkyj(fptr, name, naxes[ii], comm, status);
     }
@@ -2774,6 +2951,34 @@ int ffi2c(LONGLONG ival,  /* I - value to be converted to a string */
     return(*status);
 }
 /*--------------------------------------------------------------------------*/
+int ffu2c(ULONGLONG ival,  /* I - value to be converted to a string */
+          char *cval,     /* O - character string representation of the value */
+          int *status)    /* IO - error status */
+/*
+  convert  value to a null-terminated formatted string.
+*/
+{
+    if (*status > 0)           /* inherit input status value if > 0 */
+        return(*status);
+
+    cval[0] = '\0';
+
+#if defined(_MSC_VER)
+    /* Microsoft Visual C++ 6.0 uses '%I64d' syntax  for 8-byte integers */
+    if (sprintf(cval, "%I64u", ival) < 0)
+
+#elif (USE_LL_SUFFIX == 1)
+    if (sprintf(cval, "%llu", ival) < 0)
+#else
+    if (sprintf(cval, "%lu", ival) < 0)
+#endif
+    {
+        ffpmsg("Error in ffu2c converting integer to string");
+        *status = BAD_I2C;
+    }
+    return(*status);
+}
+/*--------------------------------------------------------------------------*/
 int ffl2c(int lval,    /* I - value to be converted to a string */
           char *cval,  /* O - character string representation of the value */
           int *status) /* IO - error status ) */
@@ -2794,9 +2999,9 @@ int ffl2c(int lval,    /* I - value to be converted to a string */
     return(*status);
 }
 /*--------------------------------------------------------------------------*/
-int ffs2c(char *instr,   /* I - null terminated input string  */
-          char *outstr,  /* O - null terminated quoted output string */
-          int *status)   /* IO - error status */
+int ffs2c(const char *instr, /* I - null terminated input string  */
+          char *outstr,      /* O - null terminated quoted output string */
+          int *status)       /* IO - error status */
 /*
   convert an input string to a quoted string. Leading spaces 
   are significant.  FITS string keyword values must be at least 
@@ -2855,6 +3060,8 @@ int ffr2f(float fval,   /* I - value to be converted to a string */
   convert float value to a null-terminated F format string
 */
 {
+    char *cptr;
+        
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
 
@@ -2866,11 +3073,14 @@ int ffr2f(float fval,   /* I - value to be converted to a string */
         return(*status = BAD_DECIM);
     }
 
-    if (sprintf(cval, "%.*f", decim, fval) < 0)
+    if (snprintf(cval, FLEN_VALUE,"%.*f", decim, fval) < 0)
     {
         ffpmsg("Error in ffr2f converting float to string");
         *status = BAD_F2C;
     }
+
+    /* replace comma with a period (e.g. in French locale) */
+    if ( (cptr = strchr(cval, ','))) *cptr = '.';
 
     /* test if output string is 'NaN', 'INDEF', or 'INF' */
     if (strchr(cval, 'N'))
@@ -2890,6 +3100,7 @@ int ffr2e(float fval,  /* I - value to be converted to a string */
   convert float value to a null-terminated exponential format string
 */
 {
+    char *cptr;
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
@@ -2898,7 +3109,7 @@ int ffr2e(float fval,  /* I - value to be converted to a string */
 
     if (decim < 0)
     {   /* use G format if decim is negative */
-        if ( sprintf(cval, "%.*G", -decim, fval) < 0)
+        if ( snprintf(cval, FLEN_VALUE,"%.*G", -decim, fval) < 0)
         {
             ffpmsg("Error in ffr2e converting float to string");
             *status = BAD_F2C;
@@ -2909,7 +3120,7 @@ int ffr2e(float fval,  /* I - value to be converted to a string */
             if ( !strchr(cval, '.') && strchr(cval,'E') )
             {
                 /* reformat value with a decimal point and single zero */
-                if ( sprintf(cval, "%.1E", fval) < 0)
+                if ( snprintf(cval, FLEN_VALUE,"%.1E", fval) < 0)
                 {
                     ffpmsg("Error in ffr2e converting float to string");
                     *status = BAD_F2C;
@@ -2921,7 +3132,7 @@ int ffr2e(float fval,  /* I - value to be converted to a string */
     }
     else
     {
-        if ( sprintf(cval, "%.*E", decim, fval) < 0)
+        if ( snprintf(cval, FLEN_VALUE,"%.*E", decim, fval) < 0)
         {
             ffpmsg("Error in ffr2e converting float to string");
             *status = BAD_F2C;
@@ -2930,13 +3141,16 @@ int ffr2e(float fval,  /* I - value to be converted to a string */
 
     if (*status <= 0)
     {
+        /* replace comma with a period (e.g. in French locale) */
+        if ( (cptr = strchr(cval, ','))) *cptr = '.';
+
         /* test if output string is 'NaN', 'INDEF', or 'INF' */
         if (strchr(cval, 'N'))
         {
             ffpmsg("Error in ffr2e: float value is a NaN or INDEF");
             *status = BAD_F2C;
         }
-        else if ( !strchr(cval, '.') && !strchr(cval,'E') )
+        else if ( !strchr(cval, '.') && !strchr(cval,'E') && strlen(cval) < FLEN_VALUE-1 )
         {
             /* add decimal point if necessary to distinquish from integer */
             strcat(cval, ".");
@@ -2954,6 +3168,8 @@ int ffd2f(double dval,  /* I - value to be converted to a string */
   convert double value to a null-terminated F format string
 */
 {
+    char *cptr;
+
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
 
@@ -2965,11 +3181,14 @@ int ffd2f(double dval,  /* I - value to be converted to a string */
         return(*status = BAD_DECIM);
     }
 
-    if (sprintf(cval, "%.*f", decim, dval) < 0)
+    if (snprintf(cval, FLEN_VALUE,"%.*f", decim, dval) < 0)
     {
         ffpmsg("Error in ffd2f converting double to string");
         *status = BAD_F2C;
     }
+
+    /* replace comma with a period (e.g. in French locale) */
+    if ( (cptr = strchr(cval, ','))) *cptr = '.';
 
     /* test if output string is 'NaN', 'INDEF', or 'INF' */
     if (strchr(cval, 'N'))
@@ -2989,6 +3208,8 @@ int ffd2e(double dval,  /* I - value to be converted to a string */
   convert double value to a null-terminated exponential format string.
 */
 {
+    char *cptr;
+
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
 
@@ -2996,7 +3217,7 @@ int ffd2e(double dval,  /* I - value to be converted to a string */
 
     if (decim < 0)
     {   /* use G format if decim is negative */
-        if ( sprintf(cval, "%.*G", -decim, dval) < 0)
+        if ( snprintf(cval, FLEN_VALUE,"%.*G", -decim, dval) < 0)
         {
             ffpmsg("Error in ffd2e converting float to string");
             *status = BAD_F2C;
@@ -3007,7 +3228,7 @@ int ffd2e(double dval,  /* I - value to be converted to a string */
             if ( !strchr(cval, '.') && strchr(cval,'E') )
             {
                 /* reformat value with a decimal point and single zero */
-                if ( sprintf(cval, "%.1E", dval) < 0)
+                if ( snprintf(cval, FLEN_VALUE,"%.1E", dval) < 0)
                 {
                     ffpmsg("Error in ffd2e converting float to string");
                     *status = BAD_F2C;
@@ -3019,7 +3240,7 @@ int ffd2e(double dval,  /* I - value to be converted to a string */
     }
     else
     {
-        if ( sprintf(cval, "%.*E", decim, dval) < 0)
+        if ( snprintf(cval, FLEN_VALUE,"%.*E", decim, dval) < 0)
         {
             ffpmsg("Error in ffd2e converting float to string");
             *status = BAD_F2C;
@@ -3028,13 +3249,16 @@ int ffd2e(double dval,  /* I - value to be converted to a string */
 
     if (*status <= 0)
     {
+        /* replace comma with a period (e.g. in French locale) */
+        if ( (cptr = strchr(cval, ','))) *cptr = '.';
+
         /* test if output string is 'NaN', 'INDEF', or 'INF' */
         if (strchr(cval, 'N'))
         {
             ffpmsg("Error in ffd2e: double value is a NaN or INDEF");
             *status = BAD_F2C;
         }
-        else if ( !strchr(cval, '.') && !strchr(cval,'E') )
+        else if ( !strchr(cval, '.') && !strchr(cval,'E') && strlen(cval) < FLEN_VALUE-1)
         {
             /* add decimal point if necessary to distinquish from integer */
             strcat(cval, ".");

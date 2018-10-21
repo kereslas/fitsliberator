@@ -237,7 +237,7 @@ int ffgsvb(fitsfile *fptr, /* I - FITS file pointer                         */
 
     if (naxis < 1 || naxis > 9)
     {
-        sprintf(msg, "NAXIS = %d in call to ffgsvb is out of range", naxis);
+        snprintf(msg, FLEN_ERRMSG,"NAXIS = %d in call to ffgsvb is out of range", naxis);
         ffpmsg(msg);
         return(*status = BAD_DIMEN);
     }
@@ -315,7 +315,7 @@ int ffgsvb(fitsfile *fptr, /* I - FITS file pointer                         */
         }
         else
         {
-          sprintf(msg, "ffgsvb: illegal range specified for axis %ld", ii + 1);
+          snprintf(msg, FLEN_ERRMSG,"ffgsvb: illegal range specified for axis %ld", ii + 1);
           ffpmsg(msg);
           return(*status = BAD_PIX_NUM);
         }
@@ -414,7 +414,7 @@ int ffgsfb(fitsfile *fptr, /* I - FITS file pointer                         */
 
     if (naxis < 1 || naxis > 9)
     {
-        sprintf(msg, "NAXIS = %d in call to ffgsvb is out of range", naxis);
+        snprintf(msg, FLEN_ERRMSG,"NAXIS = %d in call to ffgsvb is out of range", naxis);
         ffpmsg(msg);
         return(*status = BAD_DIMEN);
     }
@@ -483,7 +483,7 @@ int ffgsfb(fitsfile *fptr, /* I - FITS file pointer                         */
     {
       if (trc[ii] < blc[ii])
       {
-        sprintf(msg, "ffgsvb: illegal range specified for axis %ld", ii + 1);
+        snprintf(msg, FLEN_ERRMSG,"ffgsvb: illegal range specified for axis %ld", ii + 1);
         ffpmsg(msg);
         return(*status = BAD_PIX_NUM);
       }
@@ -659,14 +659,14 @@ int ffgclb( fitsfile *fptr,   /* I - FITS file pointer                       */
 */
 {
     double scale, zero, power = 1., dtemp;
-    int tcode, maxelem, hdutype, xcode, decimals;
+    int tcode, maxelem2, hdutype, xcode, decimals;
     long twidth, incre, ntodo;
     long ii, xwidth;
     int convert, nulcheck, readcheck = 0;
     LONGLONG repeat, startpos, elemnum, readptr, tnull;
-    LONGLONG rowlen, rownum, remain, next, rowincre;
+    LONGLONG rowlen, rownum, remain, next, rowincre, maxelem;
     char tform[20];
-    char message[81];
+    char message[FLEN_ERRMSG];
     char snull[20];   /*  the FITS null value if reading from ASCII table  */
 
     double cbuff[DBUFFSIZE / sizeof(double)]; /* align cbuff on word boundary */
@@ -695,8 +695,9 @@ int ffgclb( fitsfile *fptr,   /* I - FITS file pointer                       */
         readcheck = -1;  /* don't do range checking in this case */
 
     ffgcprll( fptr, colnum, firstrow, firstelem, nelem, readcheck, &scale, &zero,
-         tform, &twidth, &tcode, &maxelem, &startpos, &elemnum, &incre,
+         tform, &twidth, &tcode, &maxelem2, &startpos, &elemnum, &incre,
          &repeat, &rowlen, &hdutype, &tnull, snull, status);
+    maxelem = maxelem2;
 
     /* special case */
     if (tcode == TLOGICAL && elemincre == 1)
@@ -772,7 +773,13 @@ int ffgclb( fitsfile *fptr,   /* I - FITS file pointer                       */
     convert = 1;
     if (tcode == TBYTE) /* Special Case:                        */
     {                             /* no type convertion required, so read */
-        maxelem = (int) nelem;          /* data directly into output buffer.    */
+                                  /* data directly into output buffer.    */
+
+        if (nelem < (LONGLONG)INT32_MAX) {
+            maxelem = nelem;
+        } else {
+            maxelem = INT32_MAX;
+        }
 
         if (nulcheck == 0 && scale == 1. && zero == 0.)
             convert = 0;  /* no need to scale data or find nulls */
@@ -867,7 +874,7 @@ int ffgclb( fitsfile *fptr,   /* I - FITS file pointer                       */
                 break;
 
             default:  /*  error trap for invalid column format */
-                sprintf(message, 
+                snprintf(message, FLEN_ERRMSG,
                    "Cannot read bytes from column %d which has format %s",
                     colnum, tform);
                 ffpmsg(message);
@@ -885,11 +892,11 @@ int ffgclb( fitsfile *fptr,   /* I - FITS file pointer                       */
         {
 	  dtemp = (double) next;
           if (hdutype > 0)
-            sprintf(message,
+            snprintf(message,FLEN_ERRMSG,
             "Error reading elements %.0f thru %.0f from column %d (ffgclb).",
               dtemp+1., dtemp+ntodo, colnum);
           else
-            sprintf(message,
+            snprintf(message,FLEN_ERRMSG,
             "Error reading elements %.0f thru %.0f from image (ffgclb).",
               dtemp+1., dtemp+ntodo);
 
@@ -1001,7 +1008,7 @@ int fffi1i1(unsigned char *input, /* I - array of values to be converted     */
     {
         if (scale == 1. && zero == 0.)      /* no scaling */
         {              /* this routine is normally not called in this case */
-           memcpy(output, input, ntodo );
+           memmove(output, input, ntodo );
         }
         else             /* must scale the data */
         {                
@@ -1381,10 +1388,30 @@ int fffi8i1(LONGLONG *input,      /* I - array of values to be converted     */
 {
     long ii;
     double dvalue;
+    ULONGLONG ulltemp;
 
     if (nullcheck == 0)     /* no null checking required */
     {
-        if (scale == 1. && zero == 0.)      /* no scaling */
+        if (scale == 1. && zero ==  9223372036854775808.)
+        {       
+            /* The column we read contains unsigned long long values. */
+            /* Instead of adding 9223372036854775808, it is more efficient */
+            /* and more precise to just flip the sign bit with the XOR operator */
+
+            for (ii = 0; ii < ntodo; ii++) {
+ 
+                ulltemp = (ULONGLONG) (((LONGLONG) input[ii]) ^ 0x8000000000000000);
+
+                if (ulltemp > UCHAR_MAX)
+                {
+                    *status = OVERFLOW_ERR;
+                    output[ii] = UCHAR_MAX;
+                }
+                else
+                    output[ii] = (unsigned char) ulltemp;
+            }
+        }
+        else if (scale == 1. && zero == 0.)      /* no scaling */
         {       
             for (ii = 0; ii < ntodo; ii++)
             {
@@ -1425,7 +1452,39 @@ int fffi8i1(LONGLONG *input,      /* I - array of values to be converted     */
     }
     else        /* must check for null values */
     {
-        if (scale == 1. && zero == 0.)  /* no scaling */
+        if (scale == 1. && zero ==  9223372036854775808.)
+        {       
+            /* The column we read contains unsigned long long values. */
+            /* Instead of adding 9223372036854775808, it is more efficient */
+            /* and more precise to just flip the sign bit with the XOR operator */
+
+            for (ii = 0; ii < ntodo; ii++) {
+ 
+                if (input[ii] == tnull)
+                {
+                    *anynull = 1;
+                    if (nullcheck == 1)
+                        output[ii] = nullval;
+                    else
+                        nullarray[ii] = 1;
+                }
+                else
+                {
+                    ulltemp = (ULONGLONG) (((LONGLONG) input[ii]) ^ 0x8000000000000000);
+
+                    if (ulltemp > UCHAR_MAX)
+                    {
+                        *status = OVERFLOW_ERR;
+                        output[ii] = UCHAR_MAX;
+                    }
+                    else
+		    {
+                        output[ii] = (unsigned char) ulltemp;
+		    }
+                }
+            }
+        }
+        else if (scale == 1. && zero == 0.)  /* no scaling */
         {       
             for (ii = 0; ii < ntodo; ii++)
             {
@@ -1852,7 +1911,7 @@ int fffstri1(char *input,         /* I - array of values to be converted     */
     int  nullen;
     long ii;
     double dvalue;
-    char *cstring, message[81];
+    char *cstring, message[FLEN_ERRMSG];
     char *cptr, *tpos;
     char tempstore, chrzero = '0';
     double val, power;
@@ -1918,7 +1977,7 @@ int fffstri1(char *input,         /* I - array of values to be converted     */
             cptr++;
         }
 
-        if (*cptr == '.')              /* check for decimal point */
+        if (*cptr == '.' || *cptr == ',')       /* check for decimal point */
         {
           decpt = 1;
           cptr++;
@@ -1965,9 +2024,9 @@ int fffstri1(char *input,         /* I - array of values to be converted     */
 
         if (*cptr  != 0)  /* should end up at the null terminator */
         {
-          sprintf(message, "Cannot read number from ASCII table");
+          snprintf(message, FLEN_ERRMSG,"Cannot read number from ASCII table");
           ffpmsg(message);
-          sprintf(message, "Column field = %s.", cstring);
+          snprintf(message, FLEN_ERRMSG,"Column field = %s.", cstring);
           ffpmsg(message);
           /* restore the char that was overwritten by the null */
           *tpos = tempstore;

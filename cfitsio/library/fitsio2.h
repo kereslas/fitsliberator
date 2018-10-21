@@ -3,8 +3,36 @@
  
 #include "fitsio.h"
 
+/* 
+    Threading support using POSIX threads programming interface
+    (supplied by Bruce O'Neel) 
 
+    All threaded programs MUST have the 
 
+    -D_REENTRANT
+
+    on the compile line and must link with -lpthread.  This means that
+    when one builds cfitsio for threads you must have -D_REENTRANT on the
+    gcc or cc command line.
+*/
+
+#ifdef _REENTRANT
+#include <pthread.h>
+/*  #include <assert.h>  not needed any more */
+extern pthread_mutex_t Fitsio_Lock;
+extern int Fitsio_Pthread_Status;
+
+#define FFLOCK1(lockname)   (Fitsio_Pthread_Status = pthread_mutex_lock(&lockname))
+#define FFUNLOCK1(lockname) (Fitsio_Pthread_Status = pthread_mutex_unlock(&lockname))
+#define FFLOCK   FFLOCK1(Fitsio_Lock)
+#define FFUNLOCK FFUNLOCK1(Fitsio_Lock)
+#define ffstrtok(str, tok, save) strtok_r(str, tok, save)
+
+#else
+#define FFLOCK
+#define FFUNLOCK
+#define ffstrtok(str, tok, save) strtok(str, tok)
+#endif
 
 /*
   If REPLACE_LINKS is defined, then whenever CFITSIO fails to open
@@ -22,12 +50,11 @@
 
 #define DBUFFSIZE 28800 /* size of data buffer in bytes */
 
-#define NIOBUF  40  /* number of IO buffers to create */
-         /* !! Significantly increasing NIOBUF may degrade performance !! */
-#define NMAXFILES  300   /* maximum number of FITS files that can be opened */
+#define NMAXFILES  10000   /* maximum number of FITS files that can be opened */
         /* CFITSIO will allocate (NMAXFILES * 80) bytes of memory */
+	/* plus each file that is opened will use NIOBUF * 2880 bytes of memeory */
+	/* where NIOBUF is defined in fitio.h and has a default value of 40 */
 
-#define IOBUFLEN 2880    /* size in bytes of each IO buffer (DONT CHANGE!) */
 #define MINDIRECT 8640   /* minimum size for direct reads and writes */
                          /* MINDIRECT must have a value >= 8640 */
 
@@ -56,13 +83,22 @@
 #define BYTESWAPPED TRUE
 #define LONGSIZE 64
 
-#elif defined(__sparcv9)
+#elif defined(__sparcv9) || (defined(__sparc__) && defined(__arch64__))
                                /*  SUN Solaris7 in 64-bit mode */
 #define BYTESWAPPED FALSE
 #define MACHINE NATIVE
 #define LONGSIZE 64   
 
-#elif defined(__ia64__)  || defined(__x86_64__)
+                            /* IBM System z mainframe support */ 
+#elif defined(__s390x__)
+#define BYTESWAPPED FALSE
+#define LONGSIZE 64
+
+#elif defined(__s390__)
+#define BYTESWAPPED FALSE
+#define LONGSIZE 32
+
+#elif defined(__ia64__)  || defined(__x86_64__) || defined(__AARCH64EL__)
                   /*  Intel itanium 64-bit PC, or AMD opteron 64-bit PC */
 #define BYTESWAPPED TRUE
 #define LONGSIZE 64   
@@ -73,11 +109,16 @@
 #define MACHINE NATIVE
 #define LONGSIZE 64
 
-#elif defined(__powerpc64__) || defined(__64BIT__) /* IBM 64-bit AIX powerpc*/
+#elif defined(__powerpc64__) || defined(__64BIT__) || defined(__AARCH64EB__)  /* IBM 64-bit AIX powerpc*/
                               /* could also test for __ppc64__ or __PPC64 */
-#define BYTESWAPPED FALSE
-#define MACHINE NATIVE
-#define LONGSIZE 64   
+
+#  if defined(__LITTLE_ENDIAN__)
+#   define BYTESWAPPED TRUE
+#  else
+#   define BYTESWAPPED FALSE
+#   define MACHINE NATIVE
+#  endif
+#  define LONGSIZE 64
 
 #elif defined(_MIPS_SZLONG)
 
@@ -146,6 +187,22 @@
 /* (__ARMEL__ would be defined on little-endian, but not on big-endian). */
 
 #define BYTESWAPPED TRUE
+ 
+#elif defined(__tile__)
+
+/*  64-core 8x8-architecture Tile64 platform */
+
+#define BYTESWAPPED TRUE
+
+#elif defined(__sh__)
+
+/* SuperH CPU can be used in both little and big endian modes */
+
+#if defined(__LITTLE_ENDIAN__)
+#define BYTESWAPPED TRUE
+#else
+#define BYTESWAPPED FALSE
+#endif
  
 #else
 
@@ -244,6 +301,8 @@
 #endif
 
 #define DULONG_MIN -0.49   /* min double value that fits in an unsigned long */
+#define DULONGLONG_MAX 18446744073709551615. /* max unsigned  longlong */
+#define DULONGLONG_MIN -0.49
 #define DLONGLONG_MAX  9.2233720368547755807E18 /* max double value  longlong */
 #define DLONGLONG_MIN -9.2233720368547755808E18 /* min double value  longlong */
 #define DUINT_MAX 4294967295.49 /* max dbl that fits in a unsigned 4-byte int */
@@ -251,6 +310,9 @@
 #define DINT_MAX  2147483647.49 /* max double value that fits in a 4-byte int */
 #define DINT_MIN -2147483648.49 /* min double value that fits in a 4-byte int */
 
+#ifndef UINT64_MAX
+#define UINT64_MAX 18446744073709551615U /* max unsigned 64-bit integer */
+#endif
 #ifndef UINT32_MAX
 #define UINT32_MAX 4294967295U /* max unsigned 32-bit integer */
 #endif
@@ -261,48 +323,10 @@
 #define INT32_MIN (-INT32_MAX -1) /* min 32-bit integer */
 #endif
 
-#ifndef LONGLONG_MAX
-
-#ifdef LLONG_MAX
-/* Linux and Solaris definition */
-#define LONGLONG_MAX LLONG_MAX
-#define LONGLONG_MIN LLONG_MIN
-
-#elif defined(LONG_LONG_MAX)
-#define LONGLONG_MAX LONG_LONG_MAX
-#define LONGLONG_MIN LONG_LONG_MIN
-
-#elif defined(__LONG_LONG_MAX__)
-/* Mac OS X & CYGWIN defintion */
-#define LONGLONG_MAX __LONG_LONG_MAX__
-#define LONGLONG_MIN (-LONGLONG_MAX -1LL)
-
-#elif defined(INT64_MAX)
-/* windows definition */
-#define LONGLONG_MAX INT64_MAX
-#define LONGLONG_MIN INT64_MIN
-
-#elif defined(_I64_MAX)
-/* windows definition */
-#define LONGLONG_MAX _I64_MAX
-#define LONGLONG_MIN _I64_MIN
-
-#elif (LONGSIZE == 64)
-/* sizeof(long) = 64 */
-#define LONGLONG_MAX  9223372036854775807L /* max 64-bit integer */
-#define LONGLONG_MIN (-LONGLONG_MAX -1L)   /* min 64-bit integer */
-
-#else
-/*  define a default value, even if it is never used */
-#define LONGLONG_MAX  9223372036854775807LL /* max 64-bit integer */
-#define LONGLONG_MIN (-LONGLONG_MAX -1LL)   /* min 64-bit integer */
-
-#endif
-#endif  /* end of ndef LONGLONG_MAX section */
 
 #define COMPRESS_NULL_VALUE -2147483647
+#define N_RANDOM 10000  /* DO NOT CHANGE THIS;  used when quantizing real numbers */
 
-int ffmkky(char *keyname, char *keyval, char *comm, char *card, int *status);
 int ffgnky(fitsfile *fptr, char *card, int *status);
 void ffcfmt(char *tform, char *cform);
 void ffcdsp(char *tform, char *cform);
@@ -310,27 +334,34 @@ void ffswap2(short *values, long nvalues);
 void ffswap4(INT32BIT *values, long nvalues);
 void ffswap8(double *values, long nvalues);
 int ffi2c(LONGLONG ival, char *cval, int *status);
+int ffu2c(ULONGLONG ival, char *cval, int *status);
 int ffl2c(int lval, char *cval, int *status);
-int ffs2c(char *instr, char *outstr, int *status);
+int ffs2c(const char *instr, char *outstr, int *status);
 int ffr2f(float fval, int decim, char *cval, int *status);
 int ffr2e(float fval, int decim, char *cval, int *status);
 int ffd2f(double dval, int decim, char *cval, int *status);
 int ffd2e(double dval, int decim, char *cval, int *status);
-int ffc2ii(char *cval, long *ival, int *status);
-int ffc2jj(char *cval, LONGLONG *ival, int *status);
-int ffc2ll(char *cval, int *lval, int *status);
-int ffc2rr(char *cval, float *fval, int *status);
-int ffc2dd(char *cval, double *dval, int *status);
-int ffc2x(char *cval, char *dtype, long *ival, int *lval, char *sval,
+int ffc2ii(const char *cval, long *ival, int *status);
+int ffc2jj(const char *cval, LONGLONG *ival, int *status);
+int ffc2ujj(const char *cval, ULONGLONG *ival, int *status);
+int ffc2ll(const char *cval, int *lval, int *status);
+int ffc2rr(const char *cval, float *fval, int *status);
+int ffc2dd(const char *cval, double *dval, int *status);
+int ffc2x(const char *cval, char *dtype, long *ival, int *lval, char *sval,
           double *dval, int *status);
-int ffc2s(char *instr, char *outstr, int *status);
-int ffc2i(char *cval, long *ival, int *status);
-int ffc2j(char *cval, LONGLONG *ival, int *status);
-int ffc2r(char *cval, float *fval, int *status);
-int ffc2d(char *cval, double *dval, int *status);
-int ffc2l(char *cval, int *lval, int *status);
+int ffc2xx(const char *cval, char *dtype, LONGLONG *ival, int *lval, char *sval,
+          double *dval, int *status);
+int ffc2uxx(const char *cval, char *dtype, ULONGLONG *ival, int *lval, char *sval,
+          double *dval, int *status);
+int ffc2s(const char *instr, char *outstr, int *status);
+int ffc2i(const char *cval, long *ival, int *status);
+int ffc2j(const char *cval, LONGLONG *ival, int *status);
+int ffc2uj(const char *cval, ULONGLONG *ival, int *status);
+int ffc2r(const char *cval, float *fval, int *status);
+int ffc2d(const char *cval, double *dval, int *status);
+int ffc2l(const char *cval, int *lval, int *status);
 void ffxmsg(int action, char *err_message);
-int ffgcnt(fitsfile *fptr, char *value, int *status);
+int ffgcnt(fitsfile *fptr, char *value, char *comm, int *status);
 int ffgtkn(fitsfile *fptr, int numkey, char *keyname, long *value, int *status);
 int ffgtknjj(fitsfile *fptr, int numkey, char *keyname, LONGLONG *value, int *status);
 int fftkyn(fitsfile *fptr, int numkey, char *keyname, char *value, int *status);
@@ -340,7 +371,7 @@ int ffgphd(fitsfile *fptr, int maxdim, int *simple, int *bitpix, int *naxis,
 int ffgttb(fitsfile *fptr, LONGLONG *rowlen, LONGLONG *nrows, LONGLONG *pcount,
           long *tfield, int *status);
  
-int ffmkey(fitsfile *fptr, char *card, int *status);
+int ffmkey(fitsfile *fptr, const char *card, int *status);
  
 /*  ffmbyt has been moved to fitsio.h */
 int ffgbyt(fitsfile *fptr, LONGLONG nbytes, void *buffer, int *status);
@@ -352,8 +383,7 @@ int ffpbytoff(fitsfile *fptr, long gsize, long ngroups, long offset,
 int ffldrc(fitsfile *fptr, long record, int err_mode, int *status);
 int ffwhbf(fitsfile *fptr, int *nbuff);
 int ffbfeof(fitsfile *fptr, int *status);
-int ffbfwt(int nbuff, int *status);
-int fits_get_num_files(void);
+int ffbfwt(FITSfile *Fptr, int nbuff, int *status);
 int ffpxsz(int datatype);
 
 int ffourl(char *url, char *urltype, char *outfile, char *tmplfile,
@@ -367,13 +397,12 @@ int fits_already_open(fitsfile **fptr, char *url,
     char *urltype, char *infile, char *extspec, char *rowfilter,
     char *binspec, char *colspec, int  mode,int  *isopen, int  *status);
 int ffedit_columns(fitsfile **fptr, char *outfile, char *expr, int *status);
-int fits_get_col_minmax(fitsfile *fptr, int colnum, float *datamin, 
-                     float *datamax, int *status);
+int fits_get_col_minmax(fitsfile *fptr, int colnum, double *datamin, 
+                     double *datamax, int *status);
 int ffwritehisto(long totaln, long offset, long firstn, long nvalues,
              int narrays, iteratorCol *imagepars, void *userPointer);
 int ffcalchist(long totalrows, long offset, long firstrow, long nrows,
              int ncols, iteratorCol *colpars, void *userPointer);
-int ffrhdu(fitsfile *fptr, int *hdutype, int *status);
 int ffpinit(fitsfile *fptr, int *status);
 int ffainit(fitsfile *fptr, int *status);
 int ffbinit(fitsfile *fptr, int *status);
@@ -431,6 +460,9 @@ int ffgcli(fitsfile *fptr, int colnum, LONGLONG firstrow, LONGLONG firstelem,
 int ffgcluj(fitsfile *fptr, int colnum, LONGLONG firstrow, LONGLONG firstelem,
            LONGLONG nelem, long elemincre, int nultyp, unsigned long nulval,
            unsigned long *array, char *nularray, int *anynul, int  *status);
+int ffgclujj(fitsfile *fptr, int colnum, LONGLONG firstrow, LONGLONG firstelem,
+           LONGLONG nelem, long elemincre, int nultyp, ULONGLONG nulval, 
+           ULONGLONG *array, char *nularray, int *anynul, int  *status);
 int ffgcljj(fitsfile *fptr, int colnum, LONGLONG firstrow, LONGLONG firstelem,
            LONGLONG nelem, long elemincre, int nultyp, LONGLONG nulval, 
            LONGLONG *array, char *nularray, int *anynul, int  *status);
@@ -687,6 +719,30 @@ int fffstri8(char *input, long ntodo, double scale, double zero,
             LONGLONG nullval, char *nullarray, int *anynull, LONGLONG *output,
             int *status);
 
+int fffi1u8(unsigned char *input, long ntodo, double scale, double zero,
+            int nullcheck, unsigned char tnull, ULONGLONG nullval, 
+            char *nullarray, int *anynull, ULONGLONG *output, int *status);
+int fffi2u8(short *input, long ntodo, double scale, double zero,
+            int nullcheck, short tnull, ULONGLONG nullval, char *nullarray,
+            int *anynull, ULONGLONG *output, int *status);
+int fffi4u8(INT32BIT *input, long ntodo, double scale, double zero,
+            int nullcheck, INT32BIT tnull, ULONGLONG nullval, char *nullarray,
+            int *anynull, ULONGLONG *output, int *status);
+int fffi8u8(LONGLONG *input, long ntodo, double scale, double zero,
+            int nullcheck, LONGLONG tnull, ULONGLONG nullval, char *nullarray,
+            int *anynull, ULONGLONG *output, int *status);
+int fffr4u8(float *input, long ntodo, double scale, double zero,
+            int nullcheck, ULONGLONG nullval, char *nullarray,
+            int *anynull, ULONGLONG *output, int *status);
+int fffr8u8(double *input, long ntodo, double scale, double zero,
+            int nullcheck, ULONGLONG nullval, char *nullarray,
+            int *anynull, ULONGLONG *output, int *status);
+int fffstru8(char *input, long ntodo, double scale, double zero,
+            long twidth, double power, int nullcheck, char *snull,
+            ULONGLONG nullval, char *nullarray, int *anynull, ULONGLONG *output,
+            int *status);
+
+
 int fffi1r4(unsigned char *input, long ntodo, double scale, double zero,
             int nullcheck, unsigned char tnull, float nullval, char *nullarray,
             int *anynull, float *output, int *status);
@@ -745,6 +801,8 @@ int ffu4fi1(unsigned long *array, long ntodo, double scale, double zero,
             unsigned char *buffer, int *status);
 int ffi4fi1(long *array, long ntodo, double scale, double zero,
             unsigned char *buffer, int *status);
+int ffu8fi1(ULONGLONG *array, long ntodo, double scale, double zero,
+            unsigned char *buffer, int *status);
 int ffi8fi1(LONGLONG *array, long ntodo, double scale, double zero,
             unsigned char *buffer, int *status);
 int ffuintfi1(unsigned int *array, long ntodo, double scale, double zero,
@@ -768,6 +826,8 @@ int ffu4fi2(unsigned long *array, long ntodo, double scale, double zero,
             short *buffer, int *status);
 int ffi4fi2(long *array, long ntodo, double scale, double zero,
             short *buffer, int *status);
+int ffu8fi2(ULONGLONG *array, long ntodo, double scale, double zero,
+            short *buffer, int *status);
 int ffi8fi2(LONGLONG *array, long ntodo, double scale, double zero,
             short *buffer, int *status);
 int ffuintfi2(unsigned int *array, long ntodo, double scale, double zero,
@@ -789,6 +849,8 @@ int ffi2fi4(short *array, long ntodo, double scale, double zero,
             INT32BIT *buffer, int *status);
 int ffu4fi4(unsigned long *array, long ntodo, double scale, double zero,
             INT32BIT *buffer, int *status);
+int ffu8fi4(ULONGLONG *array, long ntodo, double scale, double zero,
+            INT32BIT *buffer, int *status);
 int ffi4fi4(long *array, long ntodo, double scale, double zero,
             INT32BIT *buffer, int *status);
 int ffi8fi4(LONGLONG *array, long ntodo, double scale, double zero,
@@ -802,7 +864,7 @@ int ffr4fi4(float *array, long ntodo, double scale, double zero,
 int ffr8fi4(double *array, long ntodo, double scale, double zero,
             INT32BIT *buffer, int *status);
 
-int fflongfi8(long *array, long ntodo, double scale, double zero,
+int ffi4fi8(long *array, long ntodo, double scale, double zero,
             LONGLONG *buffer, int *status);
 int ffi8fi8(LONGLONG *array, long ntodo, double scale, double zero,
             LONGLONG *buffer, int *status);
@@ -822,6 +884,8 @@ int ffu2fi8(unsigned short *array, long ntodo, double scale, double zero,
             LONGLONG *buffer, int *status);
 int ffu4fi8(unsigned long *array, long ntodo, double scale, double zero,
             LONGLONG *buffer, int *status);
+int ffu8fi8(ULONGLONG *array, long ntodo, double scale, double zero,
+            LONGLONG *buffer, int *status);
 int ffuintfi8(unsigned int *array, long ntodo, double scale, double zero,
             LONGLONG *buffer, int *status);
 
@@ -836,6 +900,8 @@ int ffi2fr4(short *array, long ntodo, double scale, double zero,
 int ffu4fr4(unsigned long *array, long ntodo, double scale, double zero,
             float *buffer, int *status);
 int ffi4fr4(long *array, long ntodo, double scale, double zero,
+            float *buffer, int *status);
+int ffu8fr4(ULONGLONG *array, long ntodo, double scale, double zero,
             float *buffer, int *status);
 int ffi8fr4(LONGLONG *array, long ntodo, double scale, double zero,
             float *buffer, int *status);
@@ -860,6 +926,8 @@ int ffu4fr8(unsigned long *array, long ntodo, double scale, double zero,
             double *buffer, int *status);
 int ffi4fr8(long *array, long ntodo, double scale, double zero,
             double *buffer, int *status);
+int ffu8fr8(ULONGLONG *array, long ntodo, double scale, double zero,
+            double *buffer, int *status);
 int ffi8fr8(LONGLONG *array, long ntodo, double scale, double zero,
             double *buffer, int *status);
 int ffuintfr8(unsigned int *array, long ntodo, double scale, double zero,
@@ -882,6 +950,8 @@ int ffi2fstr(short *input, long ntodo, double scale, double zero,
 int ffu4fstr(unsigned long *input, long ntodo, double scale, double zero,
             char *cform, long twidth, char *output, int *status);
 int ffi4fstr(long *input, long ntodo, double scale, double zero,
+            char *cform, long twidth, char *output, int *status);
+int ffu8fstr(ULONGLONG *input, long ntodo, double scale, double zero,
             char *cform, long twidth, char *output, int *status);
 int ffi8fstr(LONGLONG *input, long ntodo, double scale, double zero,
             char *cform, long twidth, char *output, int *status);
@@ -918,6 +988,9 @@ int  ffffrw_work( long totalrows, long offset, long firstrow,
                   long nrows, int nCols, iteratorCol *colData,
                   void *userPtr );
 
+int fits_translate_pixkeyword(char *inrec, char *outrec,char *patterns[][2],
+    int npat, int naxis, int *colnum, int *pat_num, int *i,
+      int *j, int *n, int *m, int *l, int *status);
 
 /*  image compression routines */
 int fits_write_compressed_img(fitsfile *fptr, 
@@ -941,6 +1014,7 @@ int imcomp_copy_imheader(fitsfile *infptr, fitsfile *outfptr,
 int imcomp_copy_img2comp(fitsfile *infptr, fitsfile *outfptr, int *status);
 int imcomp_copy_comp2img(fitsfile *infptr, fitsfile *outfptr, 
                           int norec, int *status);
+int imcomp_copy_prime2img(fitsfile *infptr, fitsfile *outfptr, int *status);
 int imcomp_compress_image (fitsfile *infptr, fitsfile *outfptr,
                  int *status);
 int imcomp_compress_tile (fitsfile *outfptr, long row, 
@@ -987,27 +1061,40 @@ int imcomp_copy_overlap (char *tile, int pixlen, int ndim,
          long *tfpixel, long *tlpixel, char *bnullarray, char *image,
          long *fpixel, long *lpixel, long *inc, int nullcheck, char *nullarray,
          int *status);
+int imcomp_test_overlap (int ndim, long *tfpixel, long *tlpixel, 
+         long *fpixel, long *lpixel, long *inc, int *status);
 int imcomp_merge_overlap (char *tile, int pixlen, int ndim,
          long *tfpixel, long *tlpixel, char *bnullarray, char *image,
          long *fpixel, long *lpixel, int nullcheck, int *status);
-
-int fits_quantize_float (float fdata[], int nx, float in_null_value,
-           int noise_bits, int idata[], double *bscale, double *bzero,
+int imcomp_decompress_img(fitsfile *infptr, fitsfile *outfptr, int datatype,
+         int  *status);
+int fits_quantize_float (long row, float fdata[], long nx, long ny, int nullcheck,
+         float in_null_value, float quantize_level, 
+           int dither_method, int idata[], double *bscale, double *bzero,
            int *iminval, int *imaxval);
-int fits_quantize_double (double fdata[], int nx, double in_null_value,
-           int noise_bits, int idata[], double *bscale, double *bzero,
+int fits_quantize_double (long row, double fdata[], long nx, long ny, int nullcheck,
+         double in_null_value, float quantize_level,
+           int dither_method, int idata[], double *bscale, double *bzero,
            int *iminval, int *imaxval);
 int fits_rcomp(int a[], int nx, unsigned char *c, int clen,int nblock);
+int fits_rcomp_short(short a[], int nx, unsigned char *c, int clen,int nblock);
+int fits_rcomp_byte(signed char a[], int nx, unsigned char *c, int clen,int nblock);
 int fits_rdecomp (unsigned char *c, int clen, unsigned int array[], int nx,
              int nblock);
-
+int fits_rdecomp_short (unsigned char *c, int clen, unsigned short array[], int nx,
+             int nblock);
+int fits_rdecomp_byte (unsigned char *c, int clen, unsigned char array[], int nx,
+             int nblock);
 int pl_p2li (int *pxsrc, int xs, short *lldst, int npix);
 int pl_l2pi (short *ll_src, int xs, int *px_dst, int npix);
+int fits_init_randoms(void);
+int fits_unset_compression_param( fitsfile *fptr, int *status);
+int fits_unset_compression_request( fitsfile *fptr, int *status);
+int fitsio_init_lock(void);
 
 /* general driver routines */
 
 int urltype2driver(char *urltype, int *driver);
-int fits_init_cfitsio(void);
 
 int fits_register_driver( char *prefix,
 	int (*init)(void),
@@ -1021,7 +1108,7 @@ int fits_register_driver( char *prefix,
 	int (*fitstruncate)(int driverhandle, LONGLONG filesize),
 	int (*fitsclose)(int driverhandle),
 	int (*fremove)(char *filename),
-        int (*size)(int driverhandle, LONGLONG *size),
+        int (*size)(int driverhandle, LONGLONG *sizex),
 	int (*flush)(int driverhandle),
 	int (*seek)(int driverhandle, LONGLONG offset),
 	int (*fitsread) (int driverhandle, void *buffer, long nbytes),
@@ -1048,6 +1135,17 @@ int file_seek(int driverhandle, LONGLONG offset);
 int file_read (int driverhandle, void *buffer, long nbytes);
 int file_write(int driverhandle, void *buffer, long nbytes);
 int file_is_compressed(char *filename);
+
+/* stream driver I/O routines */
+
+int stream_open(char *filename, int rwmode, int *driverhandle);
+int stream_create(char *filename, int *driverhandle);
+int stream_size(int driverhandle, LONGLONG *filesize);
+int stream_close(int driverhandle);
+int stream_flush(int driverhandle);
+int stream_seek(int driverhandle, LONGLONG offset);
+int stream_read (int driverhandle, void *buffer, long nbytes);
+int stream_write(int driverhandle, void *buffer, long nbytes);
 
 /* memory driver I/O routines */
 
@@ -1107,6 +1205,12 @@ int http_open(char *filename, int rwmode, int *driverhandle);
 int http_file_open(char *filename, int rwmode, int *driverhandle);
 int http_compress_open(char *filename, int rwmode, int *driverhandle);
 
+/* https driver I/O routines */
+int https_checkfile(char* urltype, char *infile, char *outfile);
+int https_open(char *filename, int rwmode, int *driverhandle);
+int https_file_open(char *filename, int rwmode, int *driverhandle);
+void https_set_verbose(int flag);
+
 /* ftp driver I/O routines */
 
 int ftp_checkfile(char *urltype, char *infile, char *outfile);
@@ -1160,11 +1264,10 @@ int compress2file_from_mem(
 #include "drvrsmem.h"
 #endif
 
-#if defined(vms) || defined(__vms) || defined(WIN32) || defined(__WIN32__) || (defined(macintosh) && !defined(TARGET_API_MAC_CARBON))
 /* A hack for nonunix machines, which lack strcasecmp and strncasecmp */
-int strcasecmp (const char *s1, const char *s2       );
-int strncasecmp(const char *s1, const char *s2, size_t n);
-#endif
+/* these functions are in fitscore.c */
+int fits_strcasecmp (const char *s1, const char *s2       );
+int fits_strncasecmp(const char *s1, const char *s2, size_t n);
 
 /* end of the entire "ifndef _FITSIO2_H" block */
 #endif

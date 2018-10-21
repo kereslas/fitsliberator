@@ -18,17 +18,38 @@ int ffcopy(fitsfile *infptr,    /* I - FITS file pointer to input file  */
   This will also allocate space in the output header for MOREKY keywords
 */
 {
+    int nspace;
+    
     if (*status > 0)
         return(*status);
 
     if (infptr == outfptr)
         return(*status = SAME_FILE);
 
-    if (ffcphd(infptr, outfptr, status) )  /* copy the header keywords */
+    if (ffcphd(infptr, outfptr, status) > 0)  /* copy the header keywords */
        return(*status);
 
-    if (morekeys > 0)
+    if (morekeys > 0) {
       ffhdef(outfptr, morekeys, status); /* reserve space for more keywords */
+
+    } else {
+        if (ffghsp(infptr, NULL, &nspace, status) > 0) /* get existing space */
+            return(*status);
+
+        if (nspace > 0) {
+            ffhdef(outfptr, nspace, status); /* preserve same amount of space */
+            if (nspace >= 35) {  
+
+	        /* There is at least 1 full empty FITS block in the header. */
+	        /* Physically write the END keyword at the beginning of the */
+	        /* last block to preserve this extra space now rather than */
+		/* later.  This is needed by the stream: driver which cannot */
+		/* seek back to the header to write the END keyword later. */
+
+	        ffwend(outfptr, status);
+            }
+        }
+    }
 
     ffcpdt(infptr, outfptr, status);  /* now copy the data unit */
 
@@ -99,7 +120,7 @@ int ffcphd(fitsfile *infptr,    /* I - FITS file pointer to input file  */
     int nkeys, ii, inPrim = 0, outPrim = 0;
     long naxis, naxes[1];
     char *card, comm[FLEN_COMMENT];
-    char *tmpbuff = NULL;
+    char *tmpbuff;
 
     if (*status > 0)
         return(*status);
@@ -407,14 +428,14 @@ int ffiimgll(fitsfile *fptr,    /* I - FITS file pointer           */
         bytlen = 8;
     else
     {
-        sprintf(errmsg,
+        snprintf(errmsg, FLEN_ERRMSG,
         "Illegal value for BITPIX keyword: %d", bitpix);
         ffpmsg(errmsg);
         return(*status = BAD_BITPIX);  /* illegal bitpix value */
     }
     if (naxis < 0 || naxis > 999)
     {
-        sprintf(errmsg,
+        snprintf(errmsg, FLEN_ERRMSG,
         "Illegal value for NAXIS keyword: %d", naxis);
         ffpmsg(errmsg);
         return(*status = BAD_NAXIS);
@@ -424,7 +445,7 @@ int ffiimgll(fitsfile *fptr,    /* I - FITS file pointer           */
     {
         if (naxes[ii] < 0)
         {
-            sprintf(errmsg,
+            snprintf(errmsg, FLEN_ERRMSG,
             "Illegal value for NAXIS%d keyword: %ld", ii + 1,  (long) naxes[ii]);
             ffpmsg(errmsg);
             return(*status = BAD_NAXES);
@@ -531,7 +552,7 @@ int ffitab(fitsfile *fptr,  /* I - FITS file pointer                        */
            long *tbcol,     /* I - byte offset in row to each column        */
            char **tform,    /* I - value of TFORMn keyword for each column  */
            char **tunit,    /* I - value of TUNITn keyword for each column  */
-           char *extnm,   /* I - value of EXTNAME keyword, if any         */
+           const char *extnmx,   /* I - value of EXTNAME keyword, if any         */
            int *status)     /* IO - error status                            */
 /*
   insert an ASCII table extension following the current HDU 
@@ -540,10 +561,14 @@ int ffitab(fitsfile *fptr,  /* I - FITS file pointer                        */
     int nexthdu, maxhdu, ii, nunit, nhead, ncols, gotmem = 0;
     long nblocks, rowlen;
     LONGLONG datasize, newstart;
-    char errmsg[81];
+    char errmsg[FLEN_ERRMSG], extnm[FLEN_VALUE];
 
     if (*status > 0)
         return(*status);
+
+    extnm[0] = '\0';
+    if (extnmx)
+      strncat(extnm, extnmx, FLEN_VALUE-1);
 
     if (fptr->HDUposition != (fptr->Fptr)->curhdu)
         ffmahd(fptr, (fptr->HDUposition) + 1, NULL, status);
@@ -567,7 +592,7 @@ int ffitab(fitsfile *fptr,  /* I - FITS file pointer                        */
         return(*status = NEG_ROWS);
     else if (tfields < 0 || tfields > 999)
     {
-        sprintf(errmsg,
+        snprintf(errmsg, FLEN_ERRMSG,
         "Illegal value for TFIELDS keyword: %d", tfields);
         ffpmsg(errmsg);
         return(*status = BAD_TFIELDS);
@@ -581,7 +606,7 @@ int ffitab(fitsfile *fptr,  /* I - FITS file pointer                        */
             nunit++;
     }
 
-    if (extnm && *extnm)
+    if (*extnm)
          nunit++;     /* add one for the EXTNAME keyword */
 
     rowlen = (long) naxis1;
@@ -662,7 +687,7 @@ int ffibin(fitsfile *fptr,  /* I - FITS file pointer                        */
            char **ttype,    /* I - name of each column                      */
            char **tform,    /* I - value of TFORMn keyword for each column  */
            char **tunit,    /* I - value of TUNITn keyword for each column  */
-           char *extnm,     /* I - value of EXTNAME keyword, if any         */
+           const char *extnmx,     /* I - value of EXTNAME keyword, if any         */
            LONGLONG pcount, /* I - size of special data area (heap)         */
            int *status)     /* IO - error status                            */
 /*
@@ -673,11 +698,14 @@ int ffibin(fitsfile *fptr,  /* I - FITS file pointer                        */
     LONGLONG naxis1;
     long nblocks, repeat, width;
     LONGLONG datasize, newstart;
-    char errmsg[81];
+    char errmsg[FLEN_ERRMSG], extnm[FLEN_VALUE];
 
     if (*status > 0)
         return(*status);
 
+    extnm[0] = '\0';
+    if (extnmx)
+      strncat(extnm, extnmx, FLEN_VALUE-1);
 
     if (fptr->HDUposition != (fptr->Fptr)->curhdu)
         ffmahd(fptr, (fptr->HDUposition) + 1, NULL, status);
@@ -699,7 +727,7 @@ int ffibin(fitsfile *fptr,  /* I - FITS file pointer                        */
         return(*status = NEG_ROWS);
     else if (tfields < 0 || tfields > 999)
     {
-        sprintf(errmsg,
+        snprintf(errmsg, FLEN_ERRMSG,
         "Illegal value for TFIELDS keyword: %d", tfields);
         ffpmsg(errmsg);
         return(*status = BAD_TFIELDS);
@@ -713,7 +741,7 @@ int ffibin(fitsfile *fptr,  /* I - FITS file pointer                        */
             nunit++;
     }
 
-    if (extnm && *extnm)
+    if (*extnm)
          nunit++;     /* add one for the EXTNAME keyword */
 
     nhead = (9 + (2 * tfields) + nunit + 35) / 36;  /* no. of header blocks */

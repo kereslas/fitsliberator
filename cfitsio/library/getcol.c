@@ -66,7 +66,8 @@ int ffgpxvll( fitsfile *fptr, /* I - FITS file pointer                       */
     int naxis, ii;
     char cdummy;
     int nullcheck = 1;
-    LONGLONG naxes[9];
+    LONGLONG naxes[9], trc[9]= {1,1,1,1,1,1,1,1,1};
+    long inc[9]= {1,1,1,1,1,1,1,1,1};
     LONGLONG dimsize = 1, firstelem;
 
     if (*status > 0 || nelem == 0)   /* inherit input status value if > 0 */
@@ -74,7 +75,13 @@ int ffgpxvll( fitsfile *fptr, /* I - FITS file pointer                       */
 
     /* get the size of the image */
     ffgidm(fptr, &naxis, status);
+
     ffgiszll(fptr, 9, naxes, status);
+
+    if (naxis == 0 || naxes[0] == 0) {
+       *status = BAD_DIMEN;
+       return(*status);
+    }
 
     /* calculate the position of the first element in the array */
     firstelem = 0;
@@ -82,6 +89,7 @@ int ffgpxvll( fitsfile *fptr, /* I - FITS file pointer                       */
     {
         firstelem += ((firstpix[ii] - 1) * dimsize);
         dimsize *= naxes[ii];
+        trc[ii] = firstpix[ii];
     }
     firstelem++;
 
@@ -89,8 +97,29 @@ int ffgpxvll( fitsfile *fptr, /* I - FITS file pointer                       */
     {
         /* this is a compressed image in a binary table */
 
-        fits_read_compressed_pixels(fptr, datatype, firstelem, nelem,
-            nullcheck, nulval, array, NULL, anynul, status);
+        /* test for special case of reading an integral number of */
+        /* rows in a 2D or 3D image (which includes reading the whole image */
+
+	if (naxis > 1 && naxis < 4 && firstpix[0] == 1 &&
+            (nelem / naxes[0]) * naxes[0] == nelem) {
+
+                /* calculate coordinate of last pixel */
+		trc[0] = naxes[0];  /* reading whole rows */
+		trc[1] = firstpix[1] + (nelem / naxes[0] - 1);
+                while (trc[1] > naxes[1])  {
+		    trc[1] = trc[1] - naxes[1];
+		    trc[2] = trc[2] + 1;  /* increment to next plane of cube */
+                }
+
+                fits_read_compressed_img(fptr, datatype, firstpix, trc, inc,
+                   1, nulval, array, NULL, anynul, status);
+
+        } else {
+
+                fits_read_compressed_pixels(fptr, datatype, firstelem,
+                   nelem, nullcheck, nulval, array, NULL, anynul, status);
+        }
+
         return(*status);
     }
 
@@ -172,6 +201,15 @@ int ffgpxvll( fitsfile *fptr, /* I - FITS file pointer                       */
       else
         ffgclj(fptr, 2, 1, firstelem, nelem, 1, 1, *(long *) nulval,
                (long *) array, &cdummy, anynul, status);
+    }
+    else if (datatype == TULONGLONG)
+    {
+      if (nulval == 0)
+        ffgclujj(fptr, 2, 1, firstelem, nelem, 1, 1, 0,
+               (ULONGLONG *) array, &cdummy, anynul, status);
+      else
+        ffgclujj(fptr, 2, 1, firstelem, nelem, 1, 1, *(ULONGLONG *) nulval,
+               (ULONGLONG *) array, &cdummy, anynul, status);
     }
     else if (datatype == TLONGLONG)
     {
@@ -334,6 +372,11 @@ int ffgpxfll( fitsfile *fptr, /* I - FITS file pointer                       */
         ffgclj(fptr, 2, 1, firstelem, nelem, 1, 2, 0,
                (long *) array, nullarray, anynul, status);
     }
+    else if (datatype == TULONGLONG)
+    {
+        ffgclujj(fptr, 2, 1, firstelem, nelem, 1, 2, 0,
+               (ULONGLONG *) array, nullarray, anynul, status);
+    }
     else if (datatype == TLONGLONG)
     {
         ffgcljj(fptr, 2, 1, firstelem, nelem, 1, 2, 0,
@@ -374,8 +417,9 @@ int ffgsv(  fitsfile *fptr,   /* I - FITS file pointer                       */
   ANYNUL is returned with a value of .true. if any pixels are undefined.
 */
 {
-    int naxis;
+    int naxis, ii;
     long naxes[9];
+    LONGLONG nelem = 1;
 
     if (*status > 0)   /* inherit input status value if > 0 */
         return(*status);
@@ -383,6 +427,23 @@ int ffgsv(  fitsfile *fptr,   /* I - FITS file pointer                       */
     /* get the size of the image */
     ffgidm(fptr, &naxis, status);
     ffgisz(fptr, 9, naxes, status);
+
+    /* test for the important special case where we are reading the whole image */
+    /* this is only useful for images that are not tile-compressed */
+    if (!fits_is_compressed_image(fptr, status)) {
+        for (ii = 0; ii < naxis; ii++) {
+            if (inc[ii] != 1 || blc[ii] !=1 || trc[ii] != naxes[ii])
+                break;
+
+            nelem = nelem * naxes[ii];
+        }
+
+        if (ii == naxis) {
+            /* read the whole image more efficiently */
+            ffgpxv(fptr, datatype, blc, nelem, nulval, array, anynul, status);
+            return(*status);
+        }
+    }
 
     if (datatype == TBYTE)
     {
@@ -455,6 +516,15 @@ int ffgsv(  fitsfile *fptr,   /* I - FITS file pointer                       */
       else
         ffgsvj(fptr, 1, naxis, naxes, blc, trc, inc, *(long *) nulval,
                (long *) array, anynul, status);
+    }
+    else if (datatype == TULONGLONG)
+    {
+      if (nulval == 0)
+        ffgsvujj(fptr, 1, naxis, naxes, blc, trc, inc, 0,
+               (ULONGLONG *) array, anynul, status);
+      else
+        ffgsvujj(fptr, 1, naxis, naxes, blc, trc, inc, *(ULONGLONG *) nulval,
+               (ULONGLONG *) array, anynul, status);
     }
     else if (datatype == TLONGLONG)
     {
@@ -590,6 +660,15 @@ int ffgpv(  fitsfile *fptr,   /* I - FITS file pointer                       */
         ffgpvj(fptr, 1, firstelem, nelem, *(long *) nulval,
                (long *) array, anynul, status);
     }
+    else if (datatype == TULONGLONG)
+    {
+      if (nulval == 0)
+        ffgpvujj(fptr, 1, firstelem, nelem, 0,
+               (ULONGLONG *) array, anynul, status);
+      else
+        ffgpvujj(fptr, 1, firstelem, nelem, *(ULONGLONG *) nulval,
+               (ULONGLONG *) array, anynul, status);
+    }
     else if (datatype == TLONGLONG)
     {
       if (nulval == 0)
@@ -692,6 +771,11 @@ int ffgpf(  fitsfile *fptr,   /* I - FITS file pointer                       */
     {
         ffgpfj(fptr, 1, firstelem, nelem,
                (long *) array, nullarray, anynul, status);
+    }
+    else if (datatype == TULONGLONG)
+    {
+        ffgpfujj(fptr, 1, firstelem, nelem,
+               (ULONGLONG *) array, nullarray, anynul, status);
     }
     else if (datatype == TLONGLONG)
     {
@@ -818,6 +902,15 @@ int ffgcv(  fitsfile *fptr,   /* I - FITS file pointer                       */
         ffgclj(fptr, colnum, firstrow, firstelem, nelem, 1, 1, *(long *)
               nulval, (long *) array, cdummy, anynul, status);
     }
+    else if (datatype == TULONGLONG)
+    {
+      if (nulval == 0)
+        ffgclujj(fptr, colnum, firstrow, firstelem, nelem, 1, 1, 0,
+              (ULONGLONG *) array, cdummy, anynul, status);
+      else
+        ffgclujj(fptr, colnum, firstrow, firstelem, nelem, 1, 1, *(ULONGLONG *)
+              nulval, (ULONGLONG *) array, cdummy, anynul, status);
+    }
     else if (datatype == TLONGLONG)
     {
       if (nulval == 0)
@@ -909,13 +1002,11 @@ int ffgcf(  fitsfile *fptr,   /* I - FITS file pointer                       */
   ANYNUL is returned with a value of true if any pixels are undefined.
 */
 {
-    void *nulval;         /* dummy argument */
-    double dnulval = 0.;
+    double nulval = 0.;
+    char cnulval[2];
 
     if (*status > 0)           /* inherit input status value if > 0 */
         return(*status);
-
-    nulval = &dnulval;  /* set to a harmless value; this is never used */
 
     if (datatype == TBIT)
     {
@@ -923,60 +1014,65 @@ int ffgcf(  fitsfile *fptr,   /* I - FITS file pointer                       */
     }
     else if (datatype == TBYTE)
     {
-       ffgclb(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(unsigned char *)
+       ffgclb(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (unsigned char )
               nulval, (unsigned char *) array, nullarray, anynul, status);
     }
     else if (datatype == TSBYTE)
     {
-       ffgclsb(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(signed char *)
+       ffgclsb(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (signed char )
               nulval, (signed char *) array, nullarray, anynul, status);
     }
     else if (datatype == TUSHORT)
     {
         ffgclui(fptr, colnum, firstrow, firstelem, nelem, 1, 2,
-               *(unsigned short *) nulval,
+               (unsigned short ) nulval,
                (unsigned short *) array, nullarray, anynul, status);
     }
     else if (datatype == TSHORT)
     {
-        ffgcli(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(short *)
+        ffgcli(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (short )
               nulval, (short *) array, nullarray, anynul, status);
     }
     else if (datatype == TUINT)
     {
         ffgcluk(fptr, colnum, firstrow, firstelem, nelem, 1, 2,
-         *(unsigned int *) nulval, (unsigned int *) array, nullarray, anynul,
+         (unsigned int ) nulval, (unsigned int *) array, nullarray, anynul,
          status);
     }
     else if (datatype == TINT)
     {
-        ffgclk(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(int *)
+        ffgclk(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (int )
             nulval, (int *) array, nullarray, anynul, status);
     }
     else if (datatype == TULONG)
     {
         ffgcluj(fptr, colnum, firstrow, firstelem, nelem, 1, 2,
-               *(unsigned long *) nulval, 
+               (unsigned long ) nulval, 
                (unsigned long *) array, nullarray, anynul, status);
     }
     else if (datatype == TLONG)
     {
-        ffgclj(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(long *)
+        ffgclj(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (long )
               nulval, (long *) array, nullarray, anynul, status);
+    }
+    else if (datatype == TULONGLONG)
+    {
+        ffgclujj(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (ULONGLONG )
+              nulval, (ULONGLONG *) array, nullarray, anynul, status);
     }
     else if (datatype == TLONGLONG)
     {
-        ffgcljj(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(LONGLONG *)
+        ffgcljj(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (LONGLONG )
               nulval, (LONGLONG *) array, nullarray, anynul, status);
     }
     else if (datatype == TFLOAT)
     {
-      ffgcle(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(float *)
+      ffgcle(fptr, colnum, firstrow, firstelem, nelem, 1, 2, (float )
                nulval,(float *) array, nullarray, anynul, status);
     }
     else if (datatype == TDOUBLE)
     {
-        ffgcld(fptr, colnum, firstrow, firstelem, nelem, 1, 2, *(double *)
+        ffgcld(fptr, colnum, firstrow, firstelem, nelem, 1, 2, 
               nulval, (double *) array, nullarray, anynul, status);
     }
     else if (datatype == TCOMPLEX)
@@ -992,13 +1088,13 @@ int ffgcf(  fitsfile *fptr,   /* I - FITS file pointer                       */
 
     else if (datatype == TLOGICAL)
     {
-        ffgcll(fptr, colnum, firstrow, firstelem, nelem, 2, *(char *) nulval,
+        ffgcll(fptr, colnum, firstrow, firstelem, nelem, 2, (char ) nulval,
           (char *) array, nullarray, anynul, status);
     }
     else if (datatype == TSTRING)
     {
-        ffgcls(fptr, colnum, firstrow, firstelem, nelem, 2, (char *)
-             nulval, (char **) array, nullarray, anynul, status);
+        ffgcls(fptr, colnum, firstrow, firstelem, nelem, 2, 
+             cnulval, (char **) array, nullarray, anynul, status);
     }
     else
       *status = BAD_DATATYPE;

@@ -47,6 +47,11 @@
       Apr 2006: Modifications to support gfortran (and g77 with -fno-f2c flag)
                 since by default it returns "float" for FORTRAN REAL function.
                 (KMCCARTY)
+      May 2008: Revert commenting out of "extern" in COMMON_BLOCK_DEF macro.
+		Add braces around do-nothing ";" in 3 empty while blocks to
+		get rid of compiler warnings.  Thanks to ROOT developers
+		Jacek Holeczek and Rene Brun for these suggestions. (KMCCARTY)
+      Dec 2008  Added typedef for LONGLONG to support Borland compiler (WDP)
  *******/
 
 /* 
@@ -66,17 +71,29 @@
 
 #if (_MSC_VER < 1300)   /* versions earlier than V7.0 do not have 'long long' */
     typedef __int64 LONGLONG;
+    typedef unsigned __int64 ULONGLONG;
 #else                   /* newer versions do support 'long long' */
     typedef long long LONGLONG; 
+    typedef unsigned long long ULONGLONG; 
 #endif
 
+#elif defined( __BORLANDC__)  /* (WDP) for the free Borland compiler, in particular */
+    typedef __int64 LONGLONG;
+    typedef unsigned __int64 ULONGLONG;
 #else
     typedef long long LONGLONG; 
+    typedef unsigned long long ULONGLONG; 
 #endif
 
 #define LONGLONG_TYPE
 #endif  
 
+/* Microsoft Visual C++ requires alternate form for static inline. */
+#if defined(_MSC_VER)   /* Microsoft Visual C++ */
+#define STIN static __inline
+#else
+#define STIN static inline
+#endif
 
 /* First prepare for the C compiler. */
 
@@ -356,8 +373,7 @@ only C calling FORTRAN subroutines will work using K&R style.*/
 #endif
 
 #ifndef apolloFortran
-/* "extern" removed (CFITSIO) */
-#define COMMON_BLOCK_DEF(DEFINITION, NAME) /* extern */ DEFINITION NAME
+#define COMMON_BLOCK_DEF(DEFINITION, NAME) extern DEFINITION NAME
 #define CF_NULL_PROTO
 #else                                         /* HP doesn't understand #elif. */
 /* Without ANSI prototyping, Apollo promotes float functions to double.    */
@@ -542,7 +558,7 @@ static char *kill_trailing(      s,      t) char *s; char t;
 {char *e; 
 e = s + strlen(s);
 if (e>s) {                           /* Need this to handle NULL string.*/
-  while (e>s && *--e==t);            /* Don't follow t's past beginning. */
+  while (e>s && *--e==t) {;}         /* Don't follow t's past beginning. */
   e[*e==t?0:1] = '\0';               /* Handle s[0]=t correctly.       */
 } return s; }
 
@@ -558,7 +574,7 @@ static char *kill_trailingn(      s,      t,       e) char *s; char t; char *e;
 { 
 if (e==s) *e = '\0';                 /* Kill the string makes sense here.*/
 else if (e>s) {                      /* Watch out for neg. length string.*/
-  while (e>s && *--e==t);            /* Don't follow t's past beginning. */
+  while (e>s && *--e==t){;}          /* Don't follow t's past beginning. */
   e[*e==t?0:1] = '\0';               /* Handle s[0]=t correctly.       */
 } return s; }
 
@@ -608,9 +624,9 @@ typedef DSC$DESCRIPTOR_A(1) fstringvector;
 #define NUM_ELEM_ARG(B) *_2(A,B),_NUM_ELEM_ARG
 #define TERM_CHARS(A,B) A,B
 #ifndef __CF__KnR
-static int num_elem(char *strv, unsigned elem_len, int term_char, int num_term)
+STIN int num_elem(char *strv, unsigned elem_len, int term_char, int num_term)
 #else
-static int num_elem(      strv,          elem_len,     term_char,     num_term)
+STIN int num_elem(      strv,          elem_len,     term_char,     num_term)
                     char *strv; unsigned elem_len; int term_char; int num_term;
 #endif
 /* elem_len is the number of characters in each element of strv, the FORTRAN
@@ -623,7 +639,7 @@ if (num_term == _NUM_ELEMS || num_term == _NUM_ELEM_ARG)
   return term_char;
 if (num_term <=0) num_term = (int)elem_len;
 for (num=0; ; num++) {
-  for (i=0; i<(unsigned)num_term && *strv==term_char; i++,strv++);
+  for (i=0; i<(unsigned)num_term && *strv==term_char; i++,strv++){;}
   if (i==(unsigned)num_term) break;
   else strv += elem_len-i;
 }

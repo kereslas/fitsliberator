@@ -179,11 +179,14 @@ FCALLSCSUB3(ffmrky,FTMRKY,ftmrky,FITSUNIT,INT,PINT)
 #define ftgnxk_STRV_A2 NUM_ELEM_ARG(3)
 #define ftgnxk_STRV_A4 NUM_ELEM_ARG(5)
 FCALLSCSUB7(ffgnxk,FTGNXK,ftgnxk,FITSUNIT,STRINGV,INT,STRINGV,INT,PSTRING,PINT)
+FCALLSCSUB4(ffgksl,FTGKSL,ftgksl,FITSUNIT,STRING,PINT,PINT)
 FCALLSCSUB4(ffgrec,FTGREC,ftgrec,FITSUNIT,INT,PSTRING,PINT)
 FCALLSCSUB4(ffgcrd,FTGCRD,ftgcrd,FITSUNIT,STRING,PSTRING,PINT)
 FCALLSCSUB4(ffgunt,FTGUNT,ftgunt,FITSUNIT,STRING,PSTRING,PINT)
 FCALLSCSUB6(ffgkyn,FTGKYN,ftgkyn,FITSUNIT,INT,PSTRING,PSTRING,PSTRING,PINT)
 FCALLSCSUB5(ffgkey,FTGKEY,ftgkey,FITSUNIT,STRING,PSTRING,PSTRING,PINT)
+
+FCALLSCSUB8(ffgsky,FTGSKY,ftgsky,FITSUNIT,STRING,INT,INT,PSTRING,PINT,PSTRING,PINT)
 
 /*   FTGKYS supported the long string convention but FFGKYS does not,
      so redirect to FFGKLS.  To handle the pointer to a pointer,
@@ -252,6 +255,10 @@ FCALLSCSUB6(ffgkyt,FTGKYT,ftgkyt,FITSUNIT,STRING,PLONG,PDOUBLE,PSTRING,PINT)
 
 #define ftgtdm_LONGV_A5 A3
 FCALLSCSUB6(ffgtdm,FTGTDM,ftgtdm,FITSUNIT,INT,INT,PINT,LONGV,PINT)
+
+#define ftdtdm_LONGV_A6 A4
+FCALLSCSUB7(ffdtdm,FTDTDM,ftdtdm,FITSUNIT,STRING,INT,INT,PINT,LONGV,PINT)
+
 
 /*------------------ read array of keywords -----------------*/
 
@@ -443,6 +450,59 @@ CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,PLONG,PINT,PSTRINGV,PSTRINGV,PSTR
    RCF(PINT,10)
 }
 
+    /*  LONGLONG version of the ftghbn routine: */
+
+#define ftghbnll_STRV_A5 NUM_ELEMS(maxdim)
+#define ftghbnll_STRV_A6 NUM_ELEMS(maxdim)
+#define ftghbnll_STRV_A7 NUM_ELEMS(maxdim)
+CFextern VOID_cfF(FTGHBNLL,ftghbnll)
+CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,PLONGLONG,PINT,PSTRINGV,PSTRINGV,PSTRINGV,PSTRING,PLONGLONG,PINT,CF_0,CF_0,CF_0,CF_0));
+CFextern VOID_cfF(FTGHBNLL,ftghbnll)
+CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,PLONGLONG,PINT,PSTRINGV,PSTRINGV,PSTRINGV,PSTRING,PLONGLONG,PINT,CF_0,CF_0,CF_0,CF_0))
+{
+   QCF(FITSUNIT,1)
+   QCF(INT,2)
+   QCF(PLONGLONG,3)
+   QCF(PINT,4)
+   QCF(PSTRINGV,5)
+   QCF(PSTRINGV,6)
+   QCF(PSTRINGV,7)
+   QCF(PSTRING,8)
+   QCF(PLONGLONG,9)
+   QCF(PINT,10)
+
+   fitsfile *fptr;
+   long tfields;
+   int maxdim,*status;
+
+   fptr = TCF(ftghbnll,FITSUNIT,1,0);
+   status =  TCF(ftghbnll,PINT,10,0);
+   maxdim =  TCF(ftghbnll,INT,2,0);
+   ffgkyj( fptr, "TFIELDS", &tfields, 0, status );
+   maxdim = (maxdim<0) ? tfields : _cfMIN(tfields,maxdim);
+
+   ffghbnll( fptr, maxdim
+             TCF(ftghbnll,PLONGLONG,3,1)
+             TCF(ftghbnll,PINT,4,1)
+             TCF(ftghbnll,PSTRINGV,5,1)
+             TCF(ftghbnll,PSTRINGV,6,1)
+             TCF(ftghbnll,PSTRINGV,7,1)
+             TCF(ftghbnll,PSTRING,8,1)
+             TCF(ftghbnll,PLONGLONG,9,1)
+             , status );
+
+   RCF(FITSUNIT,1)
+   RCF(INT,2)
+   RCF(PLONGLONG,3)
+   RCF(PINT,4)
+   RCF(PSTRINGV,5)
+   RCF(PSTRINGV,6)
+   RCF(PSTRINGV,7)
+   RCF(PSTRING,8)
+   RCF(PLONGLONG,9)
+   RCF(PINT,10)
+}
+
     /*   The following 3 routines are obsolete and dangerous to use as       */
     /*   there is no bounds checking with the arrays.  Call ftghxx instead.  */
     /*   To get cfortran to work, ftgtbh and ftgbnh require information      */
@@ -481,7 +541,7 @@ void Cffgprh( fitsfile *fptr, int *simple, int *bitpix, int *naxis, long naxes[]
    ffghpr( fptr, -1, simple, bitpix, naxis, naxes,
            pcount, gcount, extend, status );
 }
-#define ftghpr_LONGV_A5 NONE
+#define ftgprh_LONGV_A5 NONE
 FCALLSCSUB9(Cffgprh,FTGPRH,ftgprh,FITSUNIT,PLOGICAL,PINT,PINT,LONGV,PLONG,PLONG,PLOGICAL,PINT)
 
 #endif
@@ -787,6 +847,7 @@ FCALLSCSUB4(ffsnul,FTSNUL,ftsnul,FITSUNIT,INT,STRING,PINT)
 FCALLSCSUB5(ffgcno,FTGCNO,ftgcno,FITSUNIT,LOGICAL,STRING,PINT,PINT)
 FCALLSCSUB6(ffgcnn,FTGCNN,ftgcnn,FITSUNIT,LOGICAL,STRING,PSTRING,PINT,PINT)
 FCALLSCSUB3(ffgnrw,FTGNRW,ftgnrw,FITSUNIT,PLONG,PINT)
+FCALLSCSUB3(ffgnrwll,FTGNRWLL,ftgnrwll,FITSUNIT,PLONGLONG,PINT)
 FCALLSCSUB3(ffgncl,FTGNCL,ftgncl,FITSUNIT,PINT,PINT)
 FCALLSCSUB4(ffgcdw,FTGCDW,ftgcdw,FITSUNIT,INT,PINT,PINT)
 

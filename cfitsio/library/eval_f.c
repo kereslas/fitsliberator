@@ -97,9 +97,11 @@ int fffrow( fitsfile *fptr,         /* I - Input FITS file                   */
 
    if( *status ) return( *status );
 
+   FFLOCK;
    if( ffiprs( fptr, 0, expr, MAXDIMS, &Info.datatype, &nelem, &naxis,
                naxes, status ) ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
    if( nelem<0 ) {
@@ -111,6 +113,7 @@ int fffrow( fitsfile *fptr,         /* I - Input FITS file                   */
    if( Info.datatype!=TLOGICAL || nelem!=1 ) {
       ffcprs();
       ffpmsg("Expression does not evaluate to a logical scalar.");
+      FFUNLOCK;
       return( *status = PARSE_BAD_TYPE );
    }
 
@@ -149,6 +152,7 @@ int fffrow( fitsfile *fptr,         /* I - Input FITS file                   */
    }
 
    ffcprs();
+   FFUNLOCK;
    return(*status);
 }
 
@@ -179,9 +183,11 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
 
    if( *status ) return( *status );
 
+   FFLOCK;
    if( ffiprs( infptr, 0, expr, MAXDIMS, &Info.datatype, &nelem, &naxis,
                naxes, status ) ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
 
@@ -198,6 +204,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
    if( Info.datatype!=TLOGICAL || nelem!=1 ) {
       ffcprs();
       ffpmsg("Expression does not evaluate to a logical scalar.");
+      FFUNLOCK;
       return( *status = PARSE_BAD_TYPE );
    }
 
@@ -209,6 +216,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
       ffmahd( infptr, (infptr->HDUposition) + 1, NULL, status );
    if( *status ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
    inExt.rowLength = (long) (infptr->Fptr)->rowlength;
@@ -216,6 +224,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
    inExt.heapSize  = (infptr->Fptr)->heapsize;
    if( inExt.numRows == 0 ) { /* Nothing to copy */
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
 
@@ -225,6 +234,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
       ffrdef( outfptr, status );
    if( *status ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
    outExt.rowLength = (long) (outfptr->Fptr)->rowlength;
@@ -236,6 +246,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
    if( inExt.rowLength != outExt.rowLength ) {
       ffpmsg("Output table has different row length from input");
       ffcprs();
+      FFUNLOCK;
       return( *status = PARSE_BAD_OUTPUT );
    }
 
@@ -249,6 +260,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
    if( !Info.dataPtr ) {
       ffpmsg("Unable to allocate memory for row selection");
       ffcprs();
+      FFUNLOCK;
       return( *status = MEMORY_ALLOCATION );
    }
    
@@ -279,6 +291,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
       buffer = (unsigned char *)malloc(maxvalue(500000,rdlen) * sizeof(char) );
       if( buffer==NULL ) {
          ffcprs();
+         FFUNLOCK;
          return( *status=MEMORY_ALLOCATION );
       }
       maxrows = maxvalue( (500000L/rdlen), 1);
@@ -400,6 +413,7 @@ int ffsrow( fitsfile *infptr,   /* I - Input FITS file                      */
    ffcprs();
 
    ffcmph(outfptr, status);  /* compress heap, deleting any orphaned data */
+   FFUNLOCK;
    return(*status);
 }
 
@@ -428,9 +442,11 @@ int ffcrow( fitsfile *fptr,      /* I - Input FITS file                      */
 
    if( *status ) return( *status );
 
+   FFLOCK;
    if( ffiprs( fptr, 0, expr, MAXDIMS, &Info.datatype, &nelem1, &naxis,
                naxes, status ) ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
    if( nelem1<0 ) nelem1 = - nelem1;
@@ -438,6 +454,7 @@ int ffcrow( fitsfile *fptr,      /* I - Input FITS file                      */
    if( nelements<nelem1 ) {
       ffcprs();
       ffpmsg("Array not large enough to hold at least one row of data.");
+      FFUNLOCK;
       return( *status = PARSE_LRG_VECTOR );
    }
 
@@ -455,6 +472,7 @@ int ffcrow( fitsfile *fptr,      /* I - Input FITS file                      */
 
    *anynul = Info.anyNull;
    ffcprs();
+   FFUNLOCK;
    return( *status );
 }
 
@@ -510,10 +528,12 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
 
    if( *status ) return( *status );
 
+   FFLOCK;
    if( ffiprs( infptr, 0, expr, MAXDIMS, &Info.datatype, &nelem, &naxis,
                naxes, status ) ) {
 
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
    if( nelem<0 ) {
@@ -536,9 +556,17 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
          if( ! constant ) {
             ffcprs();
             ffpmsg( "Cannot put tabular result into keyword (ffcalc)" );
+            FFUNLOCK;
             return( *status = PARSE_BAD_TYPE );
          }
-         parName++;
+         parName++;  /* Advance past '#' */
+	 if ( (fits_strcasecmp(parName,"HISTORY") == 0 || fits_strcasecmp(parName,"COMMENT") == 0) &&
+	      Info.datatype != TSTRING ) {
+            ffcprs();
+            ffpmsg( "HISTORY and COMMENT values must be strings (ffcalc)" );
+	    FFUNLOCK;
+	    return( *status = PARSE_BAD_TYPE );
+	 }
 
       } else if( constant ) {
 
@@ -548,6 +576,7 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
             colNo = -1;
          } else if( *status ) {
             ffcprs();
+            FFUNLOCK;
             return( *status );
          }
 
@@ -564,7 +593,7 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
          if( parInfo==NULL || *parInfo=='\0' ) {
             /*  Figure out best default column type  */
             if( gParse.hdutype==BINARY_TBL ) {
-               sprintf(tform,"%ld",nelem);
+               snprintf(tform,15,"%ld",nelem);
                switch( Info.datatype ) {
                case TLOGICAL:  strcat(tform,"L");  break;
                case TLONG:     strcat(tform,"J");  break;
@@ -578,19 +607,19 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
                case TLOGICAL:
                   ffcprs();
                   ffpmsg("Cannot create LOGICAL column in ASCII table");
+                  FFUNLOCK;
                   return( *status = NOT_BTABLE );
-                  break;
                case TLONG:     strcpy(tform,"I11");     break;
                case TDOUBLE:   strcpy(tform,"D23.15");  break;
                case TSTRING:   
-               case TBIT:      sprintf(tform,"A%ld",nelem);  break;
+               case TBIT:      snprintf(tform,16,"A%ld",nelem);  break;
                }
             }
             parInfo = tform;
          } else if( !(isdigit((int) *parInfo)) && gParse.hdutype==BINARY_TBL ) {
             if( Info.datatype==TBIT && *parInfo=='B' )
                nelem = (nelem+7)/8;
-            sprintf(tform,"%ld%s",nelem,parInfo);
+            snprintf(tform,16,"%ld%s",nelem,parInfo);
             parInfo = tform;
          }
          fficol( outfptr, colNo, parName, parInfo, status );
@@ -632,6 +661,7 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
 
    } else if( *status ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    } else {
 
@@ -656,6 +686,7 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
          /*  Either some other error happened in ffgcrd   */
          /*  or one happened in ffptdm                    */
          ffcprs();
+         FFUNLOCK;
          return( *status );
       }
 
@@ -678,6 +709,7 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
       col_cnt = gParse.nCols;
       if( allocateCol( col_cnt, status ) ) {
          ffcprs();
+         FFUNLOCK;
          return( *status );
       }
 
@@ -708,6 +740,7 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
             *status = 0;
          else if( *status ) {
             ffcprs();
+            FFUNLOCK;
             return( *status );
          }
          if( Info.anyNull ) anyNull = 1;
@@ -735,12 +768,19 @@ int ffcalc_rng( fitsfile *infptr,   /* I - Input FITS file                  */
          break;
       case TBIT:
       case TSTRING:
-         ffukys( outfptr, parName, result->value.data.str, parInfo, status );
+	 if (fits_strcasecmp(parName,"HISTORY") == 0) {
+	   ffphis( outfptr, result->value.data.str, status);
+	 } else if (fits_strcasecmp(parName,"COMMENT") == 0) {
+	   ffpcom( outfptr, result->value.data.str, status);
+	 } else {
+	   ffukys( outfptr, parName, result->value.data.str, parInfo, status );
+	 }
          break;
       }
    }
 
    ffcprs();
+   FFUNLOCK;
    return( *status );
 }
 
@@ -757,8 +797,10 @@ int fftexp( fitsfile *fptr,      /* I - Input FITS file                     */
 /* Evaluate the given expression and return information on the result.      */
 /*--------------------------------------------------------------------------*/
 {
+   FFLOCK;
    ffiprs( fptr, 0, expr, maxdim, datatype, nelem, naxis, naxes, status );
    ffcprs();
+   FFUNLOCK;
    return( *status );
 }
 
@@ -922,7 +964,8 @@ void ffcprs( void )  /*  No parameters                                      */
       while( node-- ) {
          if( gParse.Nodes[node].operation==gtifilt_fct ) {
             i = gParse.Nodes[node].SubNodes[0];
-            FREE( gParse.Nodes[ i ].value.data.ptr );
+            if (gParse.Nodes[ i ].value.data.ptr)
+	        FREE( gParse.Nodes[ i ].value.data.ptr );
          }
          else if( gParse.Nodes[node].operation==regfilt_fct ) {
             i = gParse.Nodes[node].SubNodes[0];
@@ -961,7 +1004,7 @@ int parse_data( long    totalrows,     /* I - Total rows to be processed     */
     static void *Data, *Null;
     static int  datasize;
     static long lastRow, repeat, resDataSize;
-    LONGLONG jnull;
+    static LONGLONG jnull;
     static parseInfo *userInfo;
     static long zeros[4] = {0,0,0,0};
 
@@ -1018,8 +1061,10 @@ int parse_data( long    totalrows,     /* I - Total rows to be processed     */
              }
           }
           repeat = outcol->repeat;
+/*
           if (DEBUG_PIXFILTER)
-            printf("using null value %ld\n", jnull);
+            printf("parse_data: using null value %ld\n", jnull);
+*/
        } else {
 
           Data = userInfo->dataPtr;
@@ -1059,6 +1104,10 @@ int parse_data( long    totalrows,     /* I - Total rows to be processed     */
 
     /*  If writing to output column, set first element to appropriate  */
     /*  null value.  If no NULLs encounter, zero out before returning. */
+/*
+          if (DEBUG_PIXFILTER)
+            printf("parse_data: using null value %ld\n", jnull);
+*/
 
     if( userInfo->dataPtr == NULL ) {
        /* First, reset Data pointer to start of output array */
@@ -1427,7 +1476,7 @@ static void Setup_DataArrays( int nCols, iteratorCol *cols,
          break;
 
       default:
-         sprintf(msg, "SetupDataArrays, unhandled type %d\n",
+         snprintf(msg, 80, "SetupDataArrays, unhandled type %d\n",
                 varData->type);
          ffpmsg(msg);
       }
@@ -1542,7 +1591,6 @@ int ffcvtn( int   inputType,  /* I - Data type of input array               */
             }
          }
          return( *status );
-         break;
       case TFLOAT:
          fffr4i1((float*)input,ntodo,1.,0.,0,0,NULL,NULL,
                  (unsigned char*)output,status);
@@ -1591,7 +1639,6 @@ int ffcvtn( int   inputType,  /* I - Data type of input array               */
             }
          }
          return( *status );
-         break;
       case TFLOAT:
          fffr4i2((float*)input,ntodo,1.,0.,0,0,NULL,NULL,
                  (short*)output,status);
@@ -1988,7 +2035,7 @@ int uncompress_hkdata( fitsfile *fptr,
                   sPtr, &anynul, status ) ) return( *status );
       parNo = gParse.nCols;
       while( parNo-- )
-         if( !strcasecmp( parName, gParse.varData[parNo].name ) ) break;
+         if( !fits_strcasecmp( parName, gParse.varData[parNo].name ) ) break;
 
       if( parNo>=0 ) {
          found[parNo] = 1; /* Flag this parameter as found */
@@ -2025,7 +2072,7 @@ int uncompress_hkdata( fitsfile *fptr,
    parNo = gParse.nCols;
    while( parNo-- )
       if( !found[parNo] ) {
-         sprintf( parName, "Parameter not found: %-30s", 
+         snprintf( parName, 256, "Parameter not found: %-30s", 
                   gParse.varData[parNo].name );
          ffpmsg( parName );
          *status = PARSE_SYNTAX_ERR;
@@ -2049,9 +2096,11 @@ int ffffrw( fitsfile *fptr,         /* I - Input FITS file                   */
 
    if( *status ) return( *status );
 
+   FFLOCK;
    if( ffiprs( fptr, 0, expr, MAXDIMS, &dtype, &nelem, &naxis,
                naxes, status ) ) {
       ffcprs();
+      FFUNLOCK;
       return( *status );
    }
    if( nelem<0 ) {
@@ -2063,6 +2112,7 @@ int ffffrw( fitsfile *fptr,         /* I - Input FITS file                   */
    if( dtype!=TLOGICAL || nelem!=1 ) {
       ffcprs();
       ffpmsg("Expression does not evaluate to a logical scalar.");
+      FFUNLOCK;
       return( *status = PARSE_BAD_TYPE );
    }
 
@@ -2082,6 +2132,7 @@ int ffffrw( fitsfile *fptr,         /* I - Input FITS file                   */
    }
 
    ffcprs();
+   FFUNLOCK;
    return(*status);
 }
 
@@ -2166,7 +2217,7 @@ static int set_image_col_types (fitsfile * fptr, const char * name, int bitpix,
          colIter->datatype = TDOUBLE;
          break;
       default:
-         sprintf(temp, "set_image_col_types: unrecognized image bitpix [%d]\n",
+         snprintf(temp, 80,"set_image_col_types: unrecognized image bitpix [%d]\n",
                 bitpix);
          ffpmsg(temp);
          return gParse.status = PARSE_BAD_TYPE;
@@ -2216,11 +2267,11 @@ if (gParse.hdutype == IMAGE_HDU) {
 
    colnum = -1;
    for (i = 0; i < gParse.pixFilter->count; ++i) {
-      if (!strcasecmp(colName, gParse.pixFilter->tag[i]))
+      if (!fits_strcasecmp(colName, gParse.pixFilter->tag[i]))
          colnum = i;
    }
    if (colnum < 0) {
-      sprintf(temp, "find_column: PixelFilter tag %s not found", colName);
+      snprintf(temp, 80, "find_column: PixelFilter tag %s not found", colName);
       ffpmsg(temp);
       gParse.status = COL_NOT_FOUND;
       return pERROR;
@@ -2290,12 +2341,12 @@ if (gParse.hdutype != IMAGE_HDU) {
       /* The datatype of column with TZERO and TSCALE keywords might be 
          float or double. 
       */
-      sprintf(temp,"TZERO%d",colnum);
+      snprintf(temp,80,"TZERO%d",colnum);
       istatus = 0;
       if(fits_read_key(fptr,TDOUBLE,temp,&tzero,NULL,&istatus)) {
           tzero = 0.0;
       } 
-      sprintf(temp,"TSCAL%d",colnum);
+      snprintf(temp,80,"TSCAL%d",colnum);
       istatus = 0;
       if(fits_read_key(fptr,TDOUBLE,temp,&tscale,NULL,&istatus)) {
           tscale = 1.0;
@@ -2338,11 +2389,18 @@ if (gParse.hdutype != IMAGE_HDU) {
       varInfo->type     = STRING;
       colIter->datatype = TSTRING;
       type = SCOLUMN;
+      if ( width >= MAX_STRLEN ) {
+	snprintf(temp, 80, "column %d is wider than maximum %d characters",
+		colnum, MAX_STRLEN-1);
+        ffpmsg(temp);
+	gParse.status = PARSE_LRG_VECTOR;
+	return pERROR;
+      }
       if( gParse.hdutype == ASCII_TBL ) repeat = width;
       break;
    default:
       if (typecode < 0) {
-        sprintf(temp, "variable-length array columns are not supported. typecode = %d", typecode);
+        snprintf(temp, 80,"variable-length array columns are not supported. typecode = %d", typecode);
         ffpmsg(temp);
       }
       gParse.status = PARSE_BAD_TYPE;
@@ -2383,7 +2441,7 @@ static int find_keywd(char *keyname, void *itslval )
    if( fits_read_keyword( fptr, keyname, keyvalue, NULL, &status ) ) {
       if( status == KEY_NO_EXIST ) {
          /*  Do this since ffgkey doesn't put an error message on stack  */
-         sprintf(keyvalue, "ffgkey could not find keyword: %s",keyname);
+         snprintf(keyvalue,FLEN_VALUE, "ffgkey could not find keyword: %s",keyname);
          ffpmsg(keyvalue);
       }
       gParse.status = status;
@@ -2517,7 +2575,7 @@ static int load_column( int varNum, long fRow, long nRows,
              (double *)data, undef, &anynul, &status);
       break;
    default:
-      sprintf(msg,"load_column: unexpected datatype %d", var->datatype);
+      snprintf(msg,80,"load_column: unexpected datatype %d", var->datatype);
       ffpmsg(msg);
    }
   }
@@ -2536,7 +2594,7 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
 /*--------------------------------------------------------------------------*/
 {
    parseInfo Info = { 0 };
-   int naxis, constant, bitpix;
+   int naxis, bitpix;
    long nelem, naxes[MAXDIMS];
    int col_cnt;
    Node *result;
@@ -2552,6 +2610,7 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
    if (*status)
       return (*status);
 
+   FFLOCK;
    if (!filter->tag || !filter->tag[0] || !filter->tag[0][0]) {
       filter->tag = DEFAULT_TAGS;
       if (DEBUG_PIXFILTER)
@@ -2566,12 +2625,10 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
             &Info.datatype, &nelem, &naxis, naxes, status)) {
       goto CLEANUP;
    }
+
    if (nelem < 0) {
-      constant = 1;
       nelem = -nelem;
    }
-   else
-      constant = 0;
 
    {
       /* validate result type */
@@ -2638,7 +2695,7 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
          char card[FLEN_CARD];
 
          if (fits_read_record(infptr, i, card, status)) {
-            sprintf(msg, "pixel_filter: unable to read keycard %d", i);
+            snprintf(msg, 256,"pixel_filter: unable to read keycard %d", i);
             ffpmsg(msg);
             goto CLEANUP;
          }
@@ -2657,7 +2714,7 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
             /* do not transfer BZERO, BSCALE to real output image */
          }
          else if (fits_write_record(outfptr, card, status)) {
-            sprintf(msg, "pixel_filter: unable to write keycard '%s' [%d]\n",
+            snprintf(msg,256, "pixel_filter: unable to write keycard '%s' [%d]\n",
                         card, *status);
             ffpmsg(msg);
             goto CLEANUP;
@@ -2673,7 +2730,7 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
       case DOUBLE_IMG: datatype = TDOUBLE; Info.datatype = TDOUBLE; break;
 
       default:
-           sprintf(msg, "pixel_filter: unexpected output bitpix %d\n", bitpix);
+           snprintf(msg, 256,"pixel_filter: unexpected output bitpix %d\n", bitpix);
            ffpmsg(msg);
            *status = pERROR;
            goto CLEANUP;
@@ -2769,7 +2826,7 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
          ffukys(outfptr, parName, result->value.data.str, parInfo, status);
          break;
       default:
-         sprintf(msg, "pixel_filter: unexpected constant result type [%d]\n",
+         snprintf(msg, 256,"pixel_filter: unexpected constant result type [%d]\n",
                 Info.datatype);
          ffpmsg(msg);
       }
@@ -2777,5 +2834,6 @@ int fits_pixel_filter (PixelFilter * filter, int * status)
 
 CLEANUP:
    ffcprs();
+   FFUNLOCK;
    return (*status);
 }
