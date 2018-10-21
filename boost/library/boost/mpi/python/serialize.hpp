@@ -26,7 +26,6 @@
 #include <boost/python/str.hpp>
 #include <boost/python/extract.hpp>
 
-#include <memory>
 #include <map>
 
 #include <boost/function/function3.hpp>
@@ -36,6 +35,8 @@
 
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/array.hpp>
+#include <boost/serialization/array_wrapper.hpp>
+#include <boost/smart_ptr/scoped_array.hpp>
 
 #include <boost/assert.hpp>
 
@@ -317,8 +318,8 @@ namespace detail {
     template<typename T>
     struct default_saver {
       void operator()(OArchiver& ar, const object& obj, const unsigned int) {
-        typedef typename mpl::if_<is_fundamental<T>, T, T&>::type Type;
-        ar << extract<Type>(obj)();
+        T value = extract<T>(obj)();
+        ar << value;
       }
     };
 
@@ -441,7 +442,7 @@ load_impl(Archiver& ar, boost::python::object& obj,
   int len;
   ar >> len;
 
-  std::auto_ptr<char> string(new char[len]);
+  boost::scoped_array<char> string(new char[len]);
   ar >> boost::serialization::make_array(string.get(), len);
   boost::python::str py_string(string.get(), len);
   obj = boost::python::pickle::loads(py_string);

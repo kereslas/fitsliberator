@@ -2,7 +2,7 @@
 #define BOOST_ARCHIVE_ITERATORS_XML_UNESCAPE_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -16,11 +16,11 @@
 
 //  See http://www.boost.org for updates, documentation, and revision history.
 
-#include <cassert>
+#include <boost/config.hpp>
+#include <boost/detail/workaround.hpp>
+#include <boost/assert.hpp>
 
-#include <boost/config.hpp> // for BOOST_DEDUCED_TYPENAME
-#include <boost/throw_exception.hpp>
-#include <boost/pfto.hpp>
+#include <boost/serialization/throw_exception.hpp>
 
 #include <boost/archive/iterators/unescape.hpp>
 #include <boost/archive/iterators/dataflow_exception.hpp>
@@ -38,18 +38,25 @@ class xml_unescape
     friend class boost::iterator_core_access;
     typedef xml_unescape<Base> this_t;
     typedef unescape<this_t, Base> super_t;
-    typedef BOOST_DEDUCED_TYPENAME boost::iterator_reference<this_t> reference_type;
+    typedef typename boost::iterator_reference<this_t> reference_type;
 
     reference_type dereference() const {
         return unescape<xml_unescape<Base>, Base>::dereference();
     }
 public:
+    // msvc versions prior to 14.0 crash with and ICE 
+    #if BOOST_WORKAROUND(BOOST_MSVC, < 1900)
+        typedef int value_type;
+    #else
+        typedef typename super_t::value_type value_type;
+    #endif
+
     void drain_residue(const char *literal);
-    int drain();
+    value_type drain();
 
     template<class T>
-    xml_unescape(BOOST_PFTO_WRAPPER(T) start) : 
-        super_t(Base(BOOST_MAKE_PFTO_WRAPPER(static_cast<T>(start))))
+    xml_unescape(T start) : 
+        super_t(Base(static_cast< T >(start)))
     {}
     // intel 7.1 doesn't like default copy constructor
     xml_unescape(const xml_unescape & rhs) : 
@@ -61,7 +68,7 @@ template<class Base>
 void xml_unescape<Base>::drain_residue(const char * literal){
     do{
         if(* literal != * ++(this->base_reference()))
-            boost::throw_exception(
+            boost::serialization::throw_exception(
                 dataflow_exception(
                     dataflow_exception::invalid_xml_escape_sequence
                 )
@@ -75,8 +82,10 @@ void xml_unescape<Base>::drain_residue(const char * literal){
 // iterator refenence which would make subsequent iterator comparisons
 // incorrect and thereby break the composiblity of iterators.
 template<class Base>
-int xml_unescape<Base>::drain(){
-    int retval = * this->base_reference();
+typename xml_unescape<Base>::value_type 
+//int 
+xml_unescape<Base>::drain(){
+    value_type retval = * this->base_reference();
     if('&' != retval){
         return retval;
     }

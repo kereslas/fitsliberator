@@ -2,7 +2,7 @@
 #define BOOST_ARCHIVE_CODECVT_NULL_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -17,26 +17,31 @@
 //  See http://www.boost.org for updates, documentation, and revision history.
 
 #include <locale>
-#include <cstddef>
-
+#include <cstddef> // NULL, size_t
+#ifndef BOOST_NO_CWCHAR
+#include <cwchar>   // for mbstate_t
+#endif
 #include <boost/config.hpp>
+#include <boost/serialization/force_include.hpp>
 #include <boost/archive/detail/auto_link_archive.hpp>
+#include <boost/archive/detail/abi_prefix.hpp> // must be the last header
 
-namespace std{
-    #if defined(__LIBCOMO__)
-        using ::mbstate_t;
-    #elif defined(__QNXNTO__)
-        //using std::mbstate_t;
-    #elif defined(BOOST_DINKUMWARE_STDLIB) && BOOST_DINKUMWARE_STDLIB == 1
-        using ::mbstate_t;
-    #elif defined(__SGI_STL_PORT)
-    #elif defined(BOOST_NO_STDC_NAMESPACE)
-        using ::codecvt;
-        using ::mbstate_t;
-    #elif defined(BOOST_RWSTD_VER)
-        using ::mbstate_t;
-   #endif
-} // namespace std
+#if defined(BOOST_NO_STDC_NAMESPACE)
+namespace std {
+// For STLport on WinCE, BOOST_NO_STDC_NAMESPACE can get defined if STLport is putting symbols in its own namespace.
+// In the case of codecvt, however, this does not mean that codecvt is in the global namespace (it will be in STLport's namespace)
+#  if !defined(__SGI_STL_PORT) && !defined(_STLPORT_VERSION)
+    using ::codecvt;
+#  endif
+    using ::mbstate_t;
+    using ::size_t;
+} // namespace
+#endif
+
+#ifdef BOOST_MSVC
+#  pragma warning(push)
+#  pragma warning(disable : 4511 4512)
+#endif
 
 namespace boost {
 namespace archive {
@@ -54,12 +59,14 @@ public:
     explicit codecvt_null(std::size_t no_locale_manage = 0) :
         std::codecvt<char, char, std::mbstate_t>(no_locale_manage)
     {}
+    virtual ~codecvt_null(){};
 };
 
 template<>
-class codecvt_null<wchar_t> : public std::codecvt<wchar_t, char, std::mbstate_t>
+class BOOST_WARCHIVE_DECL codecvt_null<wchar_t> :
+    public std::codecvt<wchar_t, char, std::mbstate_t>
 {
-    virtual BOOST_ARCHIVE_DECL(std::codecvt_base::result)
+    virtual std::codecvt_base::result
     do_out(
         std::mbstate_t & state,
         const wchar_t * first1,
@@ -69,7 +76,7 @@ class codecvt_null<wchar_t> : public std::codecvt<wchar_t, char, std::mbstate_t>
         char * last2,
         char * & next2
     ) const;
-    virtual BOOST_ARCHIVE_DECL(std::codecvt_base::result)
+    virtual std::codecvt_base::result
     do_in(
         std::mbstate_t & state,
         const char * first1,
@@ -85,9 +92,19 @@ class codecvt_null<wchar_t> : public std::codecvt<wchar_t, char, std::mbstate_t>
     virtual int do_max_length( ) const throw( ){
         return do_encoding();
     }
+public:
+    explicit codecvt_null(std::size_t no_locale_manage = 0) :
+        std::codecvt<wchar_t, char, std::mbstate_t>(no_locale_manage)
+    {}
+    //virtual ~codecvt_null(){};
 };
 
 } // namespace archive
 } // namespace boost
+
+#ifdef BOOST_MSVC
+#  pragma warning(pop)
+#endif
+#include <boost/archive/detail/abi_suffix.hpp> // pop pragmas
 
 #endif //BOOST_ARCHIVE_CODECVT_NULL_HPP

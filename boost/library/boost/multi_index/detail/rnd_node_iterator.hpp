@@ -1,4 +1,4 @@
-/* Copyright 2003-2007 Joaquín M López Muñoz.
+/* Copyright 2003-2014 Joaquin M Lopez Munoz.
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE_1_0.txt or copy at
  * http://www.boost.org/LICENSE_1_0.txt)
@@ -9,7 +9,7 @@
 #ifndef BOOST_MULTI_INDEX_DETAIL_RND_NODE_ITERATOR_HPP
 #define BOOST_MULTI_INDEX_DETAIL_RND_NODE_ITERATOR_HPP
 
-#if defined(_MSC_VER)&&(_MSC_VER>=1200)
+#if defined(_MSC_VER)
 #pragma once
 #endif
 
@@ -29,16 +29,17 @@ namespace detail{
 
 /* Iterator class for node-based indices with random access iterators. */
 
-template<typename Node,typename Derived=mpl::na>
+template<typename Node>
 class rnd_node_iterator:
   public random_access_iterator_helper<
-    rnd_node_iterator<Node,Derived>,
+    rnd_node_iterator<Node>,
     typename Node::value_type,
     std::ptrdiff_t,
     const typename Node::value_type*,
     const typename Node::value_type&>
 {
 public:
+  /* coverity[uninit_ctor]: suppress warning */
   rnd_node_iterator(){}
   explicit rnd_node_iterator(Node* node_):node(node_){}
 
@@ -106,26 +107,26 @@ private:
   Node* node;
 };
 
-template<typename Node,typename Derived>
+template<typename Node>
 bool operator==(
-  const rnd_node_iterator<Node,Derived>& x,
-  const rnd_node_iterator<Node,Derived>& y)
+  const rnd_node_iterator<Node>& x,
+  const rnd_node_iterator<Node>& y)
 {
   return x.get_node()==y.get_node();
 }
 
-template<typename Node,typename Derived>
+template<typename Node>
 bool operator<(
-  const rnd_node_iterator<Node,Derived>& x,
-  const rnd_node_iterator<Node,Derived>& y)
+  const rnd_node_iterator<Node>& x,
+  const rnd_node_iterator<Node>& y)
 {
   return Node::distance(x.get_node(),y.get_node())>0;
 }
 
-template<typename Node,typename Derived>
+template<typename Node>
 std::ptrdiff_t operator-(
-  const rnd_node_iterator<Node,Derived>& x,
-  const rnd_node_iterator<Node,Derived>& y)
+  const rnd_node_iterator<Node>& x,
+  const rnd_node_iterator<Node>& y)
 {
   return Node::distance(y.get_node(),x.get_node());
 }

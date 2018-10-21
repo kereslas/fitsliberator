@@ -10,16 +10,16 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/aux_/config/integral.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/aux_/config/msvc.hpp>
 #include <boost/mpl/aux_/config/workaround.hpp>
 
 #if    !defined(BOOST_MPL_CFG_BCC_INTEGRAL_CONSTANTS) \
     && !defined(BOOST_MPL_PREPROCESSING_MODE) \
-    && BOOST_WORKAROUND(__BORLANDC__, < 0x600)
+    && BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x610))
 
 #   define BOOST_MPL_CFG_BCC_INTEGRAL_CONSTANTS
 

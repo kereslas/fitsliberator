@@ -23,9 +23,16 @@
 #include <boost/config.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/mpl/or.hpp>
+#include <boost/mpl/and.hpp>
 #include <boost/mpi/detail/mpi_datatype_cache.hpp>
 #include <boost/mpl/assert.hpp>
+#include <boost/archive/basic_archive.hpp>
+#include <boost/serialization/item_version_type.hpp>
 #include <utility> // for std::pair
+
+#if defined(__cplusplus) && (201103L <= __cplusplus) 
+#include <array>
+#endif
 
 namespace boost { namespace mpi {
 
@@ -33,7 +40,7 @@ namespace boost { namespace mpi {
  *  @brief Type trait that determines if there exists a built-in
  *  integer MPI data type for a given C++ type.
  *
- *  This ytpe trait determines when there is a direct mapping from a
+ *  This type trait determines when there is a direct mapping from a
  *  C++ type to an MPI data type that is classified as an integer data
  *  type. See @c is_mpi_builtin_datatype for general information about
  *  built-in MPI data types.
@@ -46,7 +53,7 @@ struct is_mpi_integer_datatype
  *  @brief Type trait that determines if there exists a built-in
  *  floating point MPI data type for a given C++ type.
  *
- *  This ytpe trait determines when there is a direct mapping from a
+ *  This type trait determines when there is a direct mapping from a
  *  C++ type to an MPI data type that is classified as a floating
  *  point data type. See @c is_mpi_builtin_datatype for general
  *  information about built-in MPI data types.
@@ -59,7 +66,7 @@ struct is_mpi_floating_point_datatype
  *  @brief Type trait that determines if there exists a built-in
  *  logical MPI data type for a given C++ type.
  *
- *  This ytpe trait determines when there is a direct mapping from a
+ *  This type trait determines when there is a direct mapping from a
  *  C++ type to an MPI data type that is classified as an logical data
  *  type. See @c is_mpi_builtin_datatype for general information about
  *  built-in MPI data types.
@@ -72,7 +79,7 @@ struct is_mpi_logical_datatype
  *  @brief Type trait that determines if there exists a built-in
  *  complex MPI data type for a given C++ type.
  *
- *  This ytpe trait determines when there is a direct mapping from a
+ *  This type trait determines when there is a direct mapping from a
  *  C++ type to an MPI data type that is classified as an complex data
  *  type. See @c is_mpi_builtin_datatype for general information about
  *  built-in MPI data types.
@@ -85,7 +92,7 @@ struct is_mpi_complex_datatype
  *  @brief Type trait that determines if there exists a built-in
  *  byte MPI data type for a given C++ type.
  *
- *  This ytpe trait determines when there is a direct mapping from a
+ *  This type trait determines when there is a direct mapping from a
  *  C++ type to an MPI data type that is classified as an byte data
  *  type. See @c is_mpi_builtin_datatype for general information about
  *  built-in MPI data types.
@@ -181,7 +188,7 @@ struct is_mpi_datatype
 template<typename T> MPI_Datatype get_mpi_datatype(const T& x)
 {
   BOOST_MPL_ASSERT((is_mpi_datatype<T>));
-  return detail::mpi_datatype_cache.datatype(x);
+  return detail::mpi_datatype_cache().datatype(x);
 }
 
 // Don't parse this part when we're generating Doxygen documentation.
@@ -195,8 +202,11 @@ get_mpi_datatype< CppType >(const CppType&) { return MPIType; }         \
                                                                         \
 template<>                                                              \
  struct BOOST_JOIN(is_mpi_,BOOST_JOIN(Kind,_datatype))< CppType >       \
-: boost::mpl::bool_<true>                                               \
+: boost::mpl::true_                                                     \
 {}
+
+/// INTERNAL ONLY
+BOOST_MPI_DATATYPE(packed, MPI_PACKED, builtin);
 
 /// INTERNAL ONLY
 BOOST_MPI_DATATYPE(char, MPI_CHAR, builtin);
@@ -252,16 +262,57 @@ BOOST_MPI_DATATYPE(std::pair<BOOST_MPI_LIST2(short, int>), MPI_SHORT_INT,
 BOOST_MPI_DATATYPE(std::pair<BOOST_MPI_LIST2(int, int>), MPI_2INT, builtin);
 #undef BOOST_MPI_LIST2
 
-#if 0
-#ifndef BOOST_NO_INTRINSIC_WCHAR_T
+/// specialization of is_mpi_datatype for pairs
+template <class T, class U>
+struct is_mpi_datatype<std::pair<T,U> >
+ : public mpl::and_<is_mpi_datatype<T>,is_mpi_datatype<U> >
+{
+};
+
+/// specialization of is_mpi_datatype for arrays
+#if defined(__cplusplus) && (201103L <= __cplusplus)
+template<class T, std::size_t N>
+struct is_mpi_datatype<std::array<T, N> >
+ : public is_mpi_datatype<T>
+{
+};
+#endif
+
+// Define wchar_t specialization of is_mpi_datatype, if possible.
+#if !defined(BOOST_NO_INTRINSIC_WCHAR_T) && \
+  (defined(MPI_WCHAR) || (defined(MPI_VERSION) && MPI_VERSION >= 2))
 BOOST_MPI_DATATYPE(wchar_t, MPI_WCHAR, builtin);
 #endif
 
-#ifdef BOOST_HAS_LONG_LONG
+// Define long long or __int64 specialization of is_mpi_datatype, if possible.
+#if defined(BOOST_HAS_LONG_LONG) && \
+  (defined(MPI_LONG_LONG_INT) || (defined(MPI_VERSION) && MPI_VERSION >= 2))
 BOOST_MPI_DATATYPE(long long, MPI_LONG_LONG_INT, builtin);
+#elif defined(BOOST_HAS_MS_INT64) && \
+  (defined(MPI_LONG_LONG_INT) || (defined(MPI_VERSION) && MPI_VERSION >= 2))
+BOOST_MPI_DATATYPE(__int64, MPI_LONG_LONG_INT, builtin); 
+#endif
+
+// Define unsigned long long or unsigned __int64 specialization of
+// is_mpi_datatype, if possible. We separate this from the check for
+// the (signed) long long/__int64 because some MPI implementations
+// (e.g., MPICH-MX) have MPI_LONG_LONG_INT but not
+// MPI_UNSIGNED_LONG_LONG.
+#if defined(BOOST_HAS_LONG_LONG) && \
+  (defined(MPI_UNSIGNED_LONG_LONG) \
+   || (defined(MPI_VERSION) && MPI_VERSION >= 2))
 BOOST_MPI_DATATYPE(unsigned long long, MPI_UNSIGNED_LONG_LONG, builtin);
+#elif defined(BOOST_HAS_MS_INT64) && \
+  (defined(MPI_UNSIGNED_LONG_LONG) \
+   || (defined(MPI_VERSION) && MPI_VERSION >= 2))
+BOOST_MPI_DATATYPE(unsigned __int64, MPI_UNSIGNED_LONG_LONG, builtin); 
 #endif
+
+// Define signed char specialization of is_mpi_datatype, if possible.
+#if defined(MPI_SIGNED_CHAR) || (defined(MPI_VERSION) && MPI_VERSION >= 2)
+BOOST_MPI_DATATYPE(signed char, MPI_SIGNED_CHAR, builtin);
 #endif
+
 
 #endif // Doxygen
 
@@ -290,11 +341,34 @@ struct is_mpi_datatype<bool>
   : boost::mpl::bool_<true>
 {};
 
-/// INTERNAL ONLY
-template<typename T, typename U>
-struct is_mpi_datatype<std::pair<T, U> >
-  : mpl::and_<is_mpi_datatype<T>, is_mpi_datatype<U> > { };
+
+#ifndef BOOST_MPI_DOXYGEN
+// direct support for special primitive data types of the serialization library
+BOOST_MPI_DATATYPE(boost::archive::library_version_type, get_mpi_datatype(uint_least16_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::version_type, get_mpi_datatype(uint_least8_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::class_id_type, get_mpi_datatype(int_least16_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::class_id_reference_type, get_mpi_datatype(int_least16_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::class_id_optional_type, get_mpi_datatype(int_least16_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::object_id_type, get_mpi_datatype(uint_least32_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::object_reference_type, get_mpi_datatype(uint_least32_t()), integer);
+BOOST_MPI_DATATYPE(boost::archive::tracking_type, get_mpi_datatype(bool()), builtin);
+BOOST_MPI_DATATYPE(boost::serialization::collection_size_type, get_mpi_datatype(std::size_t()), integer);
+BOOST_MPI_DATATYPE(boost::serialization::item_version_type, get_mpi_datatype(uint_least8_t()), integer);
+#endif // Doxygen
+
 
 } } // end namespace boost::mpi
+
+// direct support for special primitive data types of the serialization library
+// in the case of homogeneous systems
+// define a macro to make explicit designation of this more transparent
+#define BOOST_IS_MPI_DATATYPE(T)              \
+namespace boost {                             \
+namespace mpi {                               \
+template<>                                    \
+struct is_mpi_datatype< T > : mpl::true_ {};  \
+}}                                            \
+/**/
+
 
 #endif // BOOST_MPI_MPI_DATATYPE_HPP

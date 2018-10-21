@@ -11,14 +11,15 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/map/map0.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/map/aux_/contains_impl.hpp>
 #include <boost/mpl/map/aux_/at_impl.hpp>
 //#include <boost/mpl/map/aux_/O1_size.hpp>
 #include <boost/mpl/map/aux_/insert_impl.hpp>
+#include <boost/mpl/map/aux_/insert_range_impl.hpp>
 #include <boost/mpl/map/aux_/erase_impl.hpp>
 #include <boost/mpl/map/aux_/erase_key_impl.hpp>
 #include <boost/mpl/map/aux_/has_key_impl.hpp>

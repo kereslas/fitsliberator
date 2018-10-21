@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/multiset/aux_/count_impl.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/multiset/aux_/tag.hpp>
 #include <boost/mpl/count_fwd.hpp>

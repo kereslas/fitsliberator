@@ -11,14 +11,17 @@
 #define BOOST_SINHC_HPP
 
 
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 #include <boost/math/tools/config.hpp>
 #include <boost/math/tools/precision.hpp>
 #include <boost/math/special_functions/math_fwd.hpp>
-#include <cmath>
+#include <boost/config/no_tr1/cmath.hpp>
 #include <boost/limits.hpp>
 #include <string>
 #include <stdexcept>
-
 
 #include <boost/config.hpp>
 
@@ -31,17 +34,6 @@ namespace boost
     {
        namespace detail
        {
-#if        defined(__GNUC__) && (__GNUC__ < 3)
-        // gcc 2.x ignores function scope using declarations,
-        // put them in the scope of the enclosing namespace instead:
-
-        using    ::std::abs;
-        using    ::std::sqrt;
-        using    ::std::sinh;
-
-        using    ::std::numeric_limits;
-#endif    /* defined(__GNUC__) && (__GNUC__ < 3) */
-
         // This is the "Hyperbolic Sinus Cardinal" of index Pi.
 
         template<typename T>
@@ -110,7 +102,7 @@ namespace boost
         {
 #if defined(BOOST_FUNCTION_SCOPE_USING_DECLARATION_BREAKS_ADL) || defined(__GNUC__)
             using namespace std;
-#elif    defined(BOOST_NO_STDC_NAMESPACE)
+#elif    defined(BOOST_NO_STDC_NAMESPACE) && !defined(__SUNPRO_CC)
             using    ::abs;
             using    ::sinh;
             using    ::sqrt;
@@ -161,3 +153,4 @@ namespace boost
 }
 
 #endif /* BOOST_SINHC_HPP */
+

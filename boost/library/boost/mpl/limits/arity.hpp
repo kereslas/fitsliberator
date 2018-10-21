@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/limits/arity.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #if !defined(BOOST_MPL_LIMIT_METAFUNCTION_ARITY)
 #   define BOOST_MPL_LIMIT_METAFUNCTION_ARITY 5

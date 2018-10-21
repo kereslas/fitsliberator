@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // repeat_end_matcher.hpp
 //
-//  Copyright 2007 Eric Niebler. Distributed under the Boost
+//  Copyright 2008 Eric Niebler. Distributed under the Boost
 //  Software License, Version 1.0. (See accompanying file
 //  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -9,7 +9,7 @@
 #define BOOST_XPRESSIVE_DETAIL_CORE_MATCHER_REPEAT_END_MATCHER_HPP_EAN_10_04_2005
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -24,17 +24,17 @@ namespace boost { namespace xpressive { namespace detail
     ///////////////////////////////////////////////////////////////////////////////
     // repeat_end_matcher
     //
-    template<bool Greedy>
+    template<typename Greedy>
     struct repeat_end_matcher
       : quant_style<quant_none, 0, false>
     {
-        typedef mpl::bool_<Greedy> greedy_type;
+        typedef Greedy greedy_type;
         int mark_number_;
         unsigned int min_, max_;
         mutable void const *back_;
 
-        repeat_end_matcher(int mark_number, unsigned int min, unsigned int max)
-          : mark_number_(mark_number)
+        repeat_end_matcher(int mark_nbr, unsigned int min, unsigned int max)
+          : mark_number_(mark_nbr)
           , min_(min)
           , max_(max)
           , back_(0)

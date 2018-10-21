@@ -14,9 +14,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/aux_/template_arity.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/aux_/config/ttp.hpp>
 #include <boost/mpl/aux_/config/lambda.hpp>
@@ -98,7 +98,7 @@ template< typename F, BOOST_MPL_AUX_NTTP_DECL(int, N) >
 struct template_arity_impl
 {
     BOOST_STATIC_CONSTANT(int, value = 
-          sizeof(arity_helper(type_wrapper<F>(),arity_tag<N>())) - 1
+          sizeof(::boost::mpl::aux::arity_helper(type_wrapper<F>(),arity_tag<N>())) - 1
         );
 };
 

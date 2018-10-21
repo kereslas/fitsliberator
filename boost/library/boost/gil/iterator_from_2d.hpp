@@ -51,14 +51,14 @@ namespace boost { namespace gil {
 template <typename Loc2>    // Models PixelLocatorConcept
 class iterator_from_2d : public iterator_facade<iterator_from_2d<Loc2>,
                                                 typename Loc2::value_type,
-                                                random_access_traversal_tag,
+                                                std::random_access_iterator_tag,
                                                 typename Loc2::reference,
                                                 typename Loc2::coord_t> {
     GIL_CLASS_REQUIRE(Loc2, boost::gil, PixelLocatorConcept)
 public:
     typedef iterator_facade<iterator_from_2d<Loc2>,
                             typename Loc2::value_type,
-                            random_access_traversal_tag,
+                            std::random_access_iterator_tag,
                             typename Loc2::reference,
                             typename Loc2::coord_t> parent_t;
     typedef typename parent_t::reference       reference;
@@ -105,7 +105,7 @@ private:
         }
     }
 
-    GIL_FORCEINLINE void advance(difference_type d) {  
+    BOOST_FORCEINLINE void advance(difference_type d) {  
         if (_width==0) return;  // unfortunately we need to check for that. Default-constructed images have width of 0 and the code below will throw if executed.
         point_t delta;
         if (_coords.x+d>=0) {  // not going back to a previous row?

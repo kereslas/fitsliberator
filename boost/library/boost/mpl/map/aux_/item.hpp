@@ -11,9 +11,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/map/aux_/item.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/void.hpp>
 #include <boost/mpl/pair.hpp>
@@ -40,6 +40,7 @@ struct m_item
     typedef Key         key_;
     typedef pair<Key,T> item;
     typedef Base        base;
+    typedef m_item      type;
     
     typedef typename next< typename Base::size >::type  size;
     typedef typename next< typename Base::order >::type order;
@@ -62,6 +63,7 @@ struct m_mask
 {
     typedef void_   key_;
     typedef Base    base;
+    typedef m_mask  type;
 
     typedef typename prior< typename Base::size >::type  size;
     typedef typename x_order_impl<Base,Key>::type key_order_;
@@ -123,6 +125,7 @@ struct m_mask
 {
     typedef void_   key_;
     typedef Base    base;
+    typedef m_mask  type;
 
     typedef typename prior< typename Base::size >::type  size;
     typedef typename x_order_impl<Base,Key>::type key_order_;

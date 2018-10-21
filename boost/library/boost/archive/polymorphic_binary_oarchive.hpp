@@ -2,7 +2,7 @@
 #define BOOST_ARCHIVE_POLYMORPHIC_BINARY_OARCHIVE_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -18,14 +18,14 @@
 
 #include <boost/config.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/detail/polymorphic_oarchive_dispatch.hpp>
+#include <boost/archive/detail/polymorphic_oarchive_route.hpp>
 
 namespace boost { 
 namespace archive {
 
-typedef detail::polymorphic_oarchive_dispatch<
+typedef detail::polymorphic_oarchive_route<
     binary_oarchive_impl<
-        naked_binary_oarchive, 
+        binary_oarchive, 
         std::ostream::char_type, 
         std::ostream::traits_type
     >

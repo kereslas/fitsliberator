@@ -12,7 +12,7 @@
 #define BOOST_STRING_CONCEPT_HPP
 
 #include <boost/concept_check.hpp>
-#include <boost/range/iterator_range.hpp>
+#include <boost/range/iterator_range_core.hpp>
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
 
@@ -65,8 +65,8 @@ namespace boost {
             void constraints()
             {
                 // Operation
-                begin((*pFo)( (*pF)(i,i) ));
-                end((*pFo)( (*pF)(i,i) ));
+                ::boost::begin((*pFo)( (*pF)(i,i) ));
+                ::boost::end((*pFo)( (*pF)(i,i) ));
             }
         private:
             IteratorT i;

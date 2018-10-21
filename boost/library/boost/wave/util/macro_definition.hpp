@@ -3,7 +3,7 @@
 
     http://www.boost.org/
 
-    Copyright (c) 2001-2008 Hartmut Kaiser. Distributed under the Boost
+    Copyright (c) 2001-2012 Hartmut Kaiser. Distributed under the Boost
     Software License, Version 1.0. (See accompanying file
     LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
@@ -13,6 +13,9 @@
 
 #include <vector>
 #include <list>
+
+#include <boost/detail/atomic_count.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #include <boost/wave/wave_config.hpp>
 #if BOOST_WAVE_SERIALIZATION != 0
@@ -37,7 +40,7 @@ namespace util {
 //
 //  macro_definition
 //
-//      This class containes all infos for a defined macro. 
+//      This class containes all infos for a defined macro.
 //
 ///////////////////////////////////////////////////////////////////////////////
 template <typename TokenT, typename ContainerT>
@@ -45,20 +48,21 @@ struct macro_definition {
 
     typedef std::vector<TokenT> parameter_container_type;
     typedef ContainerT          definition_container_type;
-    
-    typedef typename parameter_container_type::const_iterator 
+
+    typedef typename parameter_container_type::const_iterator
         const_parameter_iterator_t;
-    typedef typename definition_container_type::const_iterator 
+    typedef typename definition_container_type::const_iterator
         const_definition_iterator_t;
 
-    macro_definition(TokenT const &token_, bool has_parameters, 
+    macro_definition(TokenT const &token_, bool has_parameters,
             bool is_predefined_, long uid_)
-    :   macroname(token_), uid(uid_), is_functionlike(has_parameters), 
+    :   macroname(token_), uid(uid_), is_functionlike(has_parameters),
         replaced_parameters(false), is_available_for_replacement(true),
         is_predefined(is_predefined_)
 #if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0
         , has_ellipsis(false)
 #endif
+        , use_count(0)
     {
     }
     // generated copy constructor
@@ -72,32 +76,32 @@ struct macro_definition {
     void replace_parameters()
     {
         using namespace boost::wave;
-        
+
         if (!replaced_parameters) {
         typename definition_container_type::iterator end = macrodefinition.end();
-        typename definition_container_type::iterator it = macrodefinition.begin(); 
+        typename definition_container_type::iterator it = macrodefinition.begin();
 
             for (/**/; it != end; ++it) {
             token_id id = *it;
-            
-                if (T_IDENTIFIER == id || 
+
+                if (T_IDENTIFIER == id ||
                     IS_CATEGORY(id, KeywordTokenType) ||
                     IS_EXTCATEGORY(id, OperatorTokenType|AltExtTokenType) ||
-                    IS_CATEGORY(id, OperatorTokenType)) 
+                    IS_CATEGORY(id, OperatorTokenType))
                 {
                 // may be a parameter to replace
                     const_parameter_iterator_t cend = macroparameters.end();
                     const_parameter_iterator_t cit = macroparameters.begin();
-                    for (typename parameter_container_type::size_type i = 0; 
-                        cit != cend; ++cit, ++i) 
+                    for (typename parameter_container_type::size_type i = 0;
+                        cit != cend; ++cit, ++i)
                     {
                         if ((*it).get_value() == (*cit).get_value()) {
                             (*it).set_token_id(token_id(T_PARAMETERBASE+i));
                             break;
                         }
 #if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0
-                        else if (T_ELLIPSIS == token_id(*cit) && 
-                            "__VA_ARGS__" == (*it).get_value()) 
+                        else if (T_ELLIPSIS == token_id(*cit) &&
+                            "__VA_ARGS__" == (*it).get_value())
                         {
                         // __VA_ARGS__ requires special handling
                             (*it).set_token_id(token_id(T_EXTPARAMETERBASE+i));
@@ -107,15 +111,15 @@ struct macro_definition {
                     }
                 }
             }
-            
-#if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0 
+
+#if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0
         // we need to know, if the last of the formal arguments is an ellipsis
             if (macroparameters.size() > 0 &&
-                T_ELLIPSIS == token_id(macroparameters.back())) 
+                T_ELLIPSIS == token_id(macroparameters.back()))
             {
                 has_ellipsis = true;
             }
-#endif 
+#endif
             replaced_parameters = true;     // do it only once
         }
     }
@@ -131,15 +135,17 @@ struct macro_definition {
 #if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0
     bool has_ellipsis;
 #endif
+    boost::detail::atomic_count use_count;
 
 #if BOOST_WAVE_SERIALIZATION != 0
     // default constructor is needed for serialization only
-    macro_definition() 
+    macro_definition()
     :   uid(0), is_functionlike(false), replaced_parameters(false),
         is_available_for_replacement(false), is_predefined(false)
 #if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0
       , has_ellipsis(false)
 #endif
+      , use_count(0)
     {}
 
 private:
@@ -162,6 +168,24 @@ private:
     }
 #endif
 };
+
+#if BOOST_WAVE_SERIALIZATION == 0
+///////////////////////////////////////////////////////////////////////////////
+template <typename TokenT, typename ContainerT>
+inline void
+intrusive_ptr_add_ref(macro_definition<TokenT, ContainerT>* p)
+{
+    ++p->use_count;
+}
+
+template <typename TokenT, typename ContainerT>
+inline void
+intrusive_ptr_release(macro_definition<TokenT, ContainerT>* p)
+{
+    if (--p->use_count == 0)
+        delete p;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 }   // namespace util

@@ -8,10 +8,10 @@
 // For more information, see http://www.boost.org/libs/range/
 //
 
-#ifndef BOOST_RANGE_AS_LITERAL_HPP
-#define BOOST_RANGE_AS_LITERAL_HPP
+#ifndef BOOST_RANGE_DETAIL_AS_LITERAL_HPP
+#define BOOST_RANGE_DETAIL_AS_LITERAL_HPP
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 

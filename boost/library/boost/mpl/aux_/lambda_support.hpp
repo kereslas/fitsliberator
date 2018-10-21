@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/aux_/lambda_support.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/aux_/config/lambda.hpp>
 
@@ -110,7 +110,7 @@ template< typename T > struct has_rebind_tag;
     typedef BOOST_PP_CAT(name,_rebind) rebind; \
 /**/
 
-#if BOOST_WORKAROUND(__BORLANDC__, < 0x600)
+#if BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x610))
 #   define BOOST_MPL_AUX_LAMBDA_SUPPORT_HAS_REBIND(i, name, params) \
 template< BOOST_MPL_PP_PARAMS(i,typename T) > \
 ::boost::mpl::aux::yes_tag operator|( \

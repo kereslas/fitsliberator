@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // placeholders.hpp
 //
-//  Copyright 2007 Eric Niebler. Distributed under the Boost
+//  Copyright 2008 Eric Niebler. Distributed under the Boost
 //  Software License, Version 1.0. (See accompanying file
 //  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -9,7 +9,7 @@
 #define BOOST_XPRESSIVE_DETAIL_STATIC_PLACEHOLDERS_HPP_EAN_10_04_2005
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 # pragma warning(push)
 # pragma warning(disable:4510) // default constructor could not be generated
@@ -108,11 +108,12 @@ struct attribute_placeholder
     BOOST_XPR_QUANT_STYLE(quant_variable_width, unknown_width::value, false)
 
     typedef Nbr nbr_type;
+    static Nbr nbr() { return Nbr(); }
 };
 
 }}} // namespace boost::xpressive::detail
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma warning(pop)
 #endif
 

@@ -2,7 +2,7 @@
 #define BOOST_SERIALIZATION_ACCESS_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -17,8 +17,6 @@
 //  See http://www.boost.org for updates, documentation, and revision history.
 
 #include <boost/config.hpp>
-
-#include <boost/pfto.hpp>
 
 namespace boost {
 
@@ -66,19 +64,19 @@ public:
     friend inline void serialize(
         Archive & ar, 
         T & t, 
-        const BOOST_PFTO unsigned int file_version
+        const unsigned int file_version
     );
     template<class Archive, class T>
     friend inline void save_construct_data(
         Archive & ar, 
         const T * t, 
-        const BOOST_PFTO unsigned int file_version
+        const unsigned int file_version
     );
     template<class Archive, class T>
     friend inline void load_construct_data(
         Archive & ar, 
         T * t, 
-        const BOOST_PFTO unsigned int file_version
+        const unsigned int file_version
     );
 #endif
 
@@ -106,6 +104,15 @@ public:
         T & t, 
         const unsigned int file_version
     ){
+        // note: if you get a compile time error here with a
+        // message something like:
+        // cannot convert parameter 1 from <file type 1> to <file type 2 &>
+        // a likely possible cause is that the class T contains a 
+        // serialize function - but that serialize function isn't 
+        // a template and corresponds to a file type different than
+        // the class Archive.  To resolve this, don't include an
+        // archive type other than that for which the serialization
+        // function is defined!!!
         t.serialize(ar, file_version);
     }
     template<class T>
@@ -115,12 +122,20 @@ public:
         // benign on everything else
         delete const_cast<T *>(t);
     }
-    template<class Archive, class T>
-    static void construct(Archive & /* ar */, T * t){
+    template<class T>
+    static void construct(T * t){
         // default is inplace invocation of default constructor
         // Note the :: before the placement new. Required if the
         // class doesn't have a class-specific placement new defined.
         ::new(t)T;
+    }
+    template<class T, class U>
+    static T & cast_reference(U & u){
+        return static_cast<T &>(u);
+    }
+    template<class T, class U>
+    static T * cast_pointer(U * u){
+        return static_cast<T *>(u);
     }
 };
 

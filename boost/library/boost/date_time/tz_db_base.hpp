@@ -5,20 +5,23 @@
  * Subject to the Boost Software License, Version 1.0. 
  * (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
  * Author: Jeff Garland, Bart Garst
- * $Date: 2008/04/19 09:38:40 $
+ * $Date$
  */
 
-#include "boost/shared_ptr.hpp"
-#include "boost/date_time/time_zone_names.hpp"
-#include "boost/date_time/time_zone_base.hpp"
-#include "boost/date_time/time_parsing.hpp"
-#include "boost/tokenizer.hpp"
-#include <string>
-#include <sstream>
 #include <map>
 #include <vector>
-#include <stdexcept>
+#include <string>
+#include <sstream>
 #include <fstream>
+#include <stdexcept>
+#include <boost/tokenizer.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/throw_exception.hpp>
+#include <boost/date_time/compiler_config.hpp>
+#include <boost/date_time/time_zone_names.hpp>
+#include <boost/date_time/time_zone_base.hpp>
+#include <boost/date_time/time_parsing.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace boost {
   namespace date_time {
@@ -158,38 +161,45 @@ namespace boost {
       typedef typename time_zone_type::base_type time_zone_base_type;
       typedef typename time_zone_type::time_duration_type time_duration_type;
       typedef time_zone_names_base<char_type> time_zone_names;
-      typedef dst_adjustment_offsets<time_duration_type> dst_adjustment_offsets;
+      typedef boost::date_time::dst_adjustment_offsets<time_duration_type> dst_adjustment_offsets;
       typedef std::basic_string<char_type> string_type;
 
       //! Constructs an empty database
       tz_db_base() {}
 
       //! Process csv data file, may throw exceptions
-      /*! May throw data_not_accessible, or bad_field_count exceptions */
-      void load_from_file(const std::string& pathspec)
+      /*! May throw bad_field_count exceptions */
+      void load_from_stream(std::istream &in)
       {
-        string_type in_str;
-        std::string  buff;
-        
-        std::ifstream ifs(pathspec.c_str());
-        if(!ifs){
-          throw data_not_accessible(pathspec);
-        }
-        std::getline(ifs, buff); // first line is column headings
-
-        while( std::getline(ifs, buff)) {
+        std::string buff;
+        while( std::getline(in, buff)) {
+          boost::trim_right(buff);
           parse_string(buff);
         }
       }
 
+      //! Process csv data file, may throw exceptions
+      /*! May throw data_not_accessible, or bad_field_count exceptions */
+      void load_from_file(const std::string& pathspec)
+      {
+        std::string  buff;
+        
+        std::ifstream ifs(pathspec.c_str());
+        if(!ifs){
+          boost::throw_exception(data_not_accessible(pathspec));
+        }
+        std::getline(ifs, buff); // first line is column headings
+        this->load_from_stream(ifs);
+      }
+
       //! returns true if record successfully added to map
-      /*! Takes an id string in the form of "America/Phoenix", and a 
+      /*! Takes a region name in the form of "America/Phoenix", and a 
        * time_zone object for that region. The id string must be a unique 
        * name that does not already exist in the database. */
-      bool add_record(const string_type& id, 
+      bool add_record(const string_type& region, 
                       boost::shared_ptr<time_zone_base_type> tz)
       {
-        typename map_type::value_type p(id, tz); 
+        typename map_type::value_type p(region, tz); 
         return (m_zone_map.insert(p)).second;
       }
 
@@ -252,8 +262,12 @@ namespace boost {
         e_wn = get_week_num(e_nth);
         
         
-        return new rule_type(start_rule(s_wn, s_d, s_m),
-                             end_rule(e_wn, e_d, e_m));
+        return new rule_type(start_rule(s_wn,
+                                        static_cast<unsigned short>(s_d),
+                                        static_cast<unsigned short>(s_m)),
+                             end_rule(e_wn,
+                                      static_cast<unsigned short>(e_d),
+                                      static_cast<unsigned short>(e_m)));
       }
       //! helper function for parse_rules()
       week_num get_week_num(int nth) const
@@ -292,7 +306,15 @@ namespace boost {
         const char_type sep_char[] = { ';', '\0'};
         char_separator_type sep(sep_char);
         tokenizer tokens(rule, sep); // 3 fields
-        
+
+        if ( std::distance ( tokens.begin(), tokens.end ()) != 3 ) {
+          std::ostringstream msg;
+          msg << "Expecting 3 fields, got " 
+              << std::distance ( tokens.begin(), tokens.end ()) 
+              << " fields in line: " << rule;
+          boost::throw_exception(bad_field_count(msg.str()));
+        }
+
         tokenizer_iterator tok_iter = tokens.begin(); 
         nth = std::atoi(tok_iter->c_str()); ++tok_iter;
         d   = std::atoi(tok_iter->c_str()); ++tok_iter;
@@ -307,7 +329,6 @@ namespace boost {
        * zone_spec successfully added to database */
       bool parse_string(string_type& s)
       {
-        
         std::vector<string_type> result;
         typedef boost::token_iterator_generator<boost::escaped_list_separator<char_type>, string_type::const_iterator, string_type >::type token_iter_type;
 
@@ -326,10 +347,11 @@ namespace boost {
         //take a shot at fixing gcc 4.x error
         const unsigned int expected_fields = static_cast<unsigned int>(FIELD_COUNT);
         if (result.size() != expected_fields) { 
-          std::stringstream msg;
+          std::ostringstream msg;
           msg << "Expecting " << FIELD_COUNT << " fields, got " 
             << result.size() << " fields in line: " << s;
-          throw bad_field_count(msg.str());
+          boost::throw_exception(bad_field_count(msg.str()));
+          BOOST_DATE_TIME_UNREACHABLE_EXPRESSION(return false); // should never reach
         }
 
         // initializations

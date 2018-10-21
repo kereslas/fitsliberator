@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // tracking_ptr.hpp
 //
-//  Copyright 2007 Eric Niebler. Distributed under the Boost
+//  Copyright 2008 Eric Niebler. Distributed under the Boost
 //  Software License, Version 1.0. (See accompanying file
 //  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -9,7 +9,7 @@
 #define BOOST_XPRESSIVE_DETAIL_UTILITY_TRACKING_PTR_HPP_EAN_10_04_2005
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -24,6 +24,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/mpl/assert.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/detail/workaround.hpp>
 #include <boost/detail/atomic_count.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/iterator/filter_iterator.hpp>
@@ -111,8 +112,10 @@ private:
 //  for use with a filter_iterator to filter a node out of a list of dependencies
 template<typename Derived>
 struct filter_self
-  : std::unary_function<shared_ptr<Derived>, bool>
 {
+    typedef shared_ptr<Derived> argument_type;
+    typedef bool result_type;
+
     filter_self(enable_reference_tracking<Derived> *self)
       : self_(self)
     {
@@ -433,17 +436,24 @@ struct tracking_ptr
         return this->impl_->self_;
     }
 
-    #if defined(__SUNPRO_CC) && BOOST_WORKAROUND(__SUNPRO_CC, <= 0x530)
-    typedef bool unspecified_bool_type;
-    #else
-    typedef typename intrusive_ptr<element_type>::unspecified_bool_type unspecified_bool_type;
-    #endif
-
     // smart-pointer operators
-    operator unspecified_bool_type() const
+    #if defined(__SUNPRO_CC) && BOOST_WORKAROUND(__SUNPRO_CC, <= 0x530)
+
+    operator bool() const
     {
         return this->impl_;
     }
+
+    #else
+
+    typedef intrusive_ptr<element_type> tracking_ptr::* unspecified_bool_type;
+
+    operator unspecified_bool_type() const
+    {
+        return this->impl_ ? &tracking_ptr::impl_ : 0;
+    }
+
+    #endif
 
     bool operator !() const
     {

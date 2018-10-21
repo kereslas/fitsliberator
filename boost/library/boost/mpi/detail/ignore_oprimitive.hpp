@@ -31,12 +31,12 @@ public:
 
         /// don't do anything when saving binary data
     void save_binary(const void *, std::size_t )
-        {
-        }
+    {
+    }
 
         /// don't do anything when saving arrays
     template<class T>
-    void save_array(serialization::array<T> const&, unsigned int )
+    void save_array(serialization::array_wrapper<T> const&, unsigned int )
     {
     }
 
@@ -52,7 +52,7 @@ public:
 
         /// don't do anything when saving primitive types
     template<class T>
-    void save(const T & t)
+    void save(const T &)
     {
     }
 };

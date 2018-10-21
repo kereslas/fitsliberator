@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/aux_/preprocessor/filter_params.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #define BOOST_MPL_PP_FILTER_PARAMS_0(p1,p2,p3,p4,p5,p6,p7,p8,p9) 
 #define BOOST_MPL_PP_FILTER_PARAMS_1(p1,p2,p3,p4,p5,p6,p7,p8,p9) p1

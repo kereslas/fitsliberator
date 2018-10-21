@@ -2,7 +2,7 @@
 #define BOOST_ARCHIVE_BINARY_WOARCHIVE_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -23,6 +23,7 @@
 
 #include <ostream>
 #include <boost/archive/binary_oarchive_impl.hpp>
+#include <boost/archive/detail/register_archive.hpp>
 
 namespace boost { 
 namespace archive {
@@ -47,8 +48,6 @@ public:
         >(bsb, flags)
     {}
 };
-
-typedef binary_woarchive naked_binary_woarchive;
 
 } // namespace archive
 } // namespace boost

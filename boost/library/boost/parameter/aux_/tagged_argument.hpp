@@ -14,6 +14,7 @@
 # include <boost/mpl/and.hpp>
 # include <boost/mpl/not.hpp>
 # include <boost/type_traits/is_same.hpp>
+# include <boost/type_traits/is_convertible.hpp>
 # include <boost/type_traits/is_reference.hpp>
 
 namespace boost { namespace parameter { namespace aux {
@@ -119,13 +120,13 @@ struct tagged_argument : tagged_argument_base
     }
 # else
     template <class Default>
-    reference operator[](default_<key_type,Default> const& x) const
+    reference operator[](default_<key_type,Default> const& ) const
     {
         return value;
     }
 
     template <class F>
-    reference operator[](lazy_default<key_type,F> const& x) const
+    reference operator[](lazy_default<key_type,F> const& ) const
     {
         return value;
     }

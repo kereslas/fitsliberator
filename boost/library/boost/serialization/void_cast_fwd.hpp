@@ -2,7 +2,7 @@
 #define BOOST_SERIALIZATION_VOID_CAST_FWD_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -16,6 +16,9 @@
 // gennadiy.rozental@tfn.com
 
 //  See http://www.boost.org for updates, documentation, and revision history.
+
+#include <cstddef> // NULL
+#include <boost/serialization/force_include.hpp>
 
 namespace boost {
 namespace serialization {

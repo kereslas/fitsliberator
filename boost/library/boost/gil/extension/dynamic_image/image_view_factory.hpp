@@ -70,9 +70,14 @@ template <typename Result> struct nth_channel_view_fn {
     int _n;
     template <typename View> result_type operator()(const View& src) const { return result_type(nth_channel_view(src,_n)); }
 };
-template <typename DstP, typename Result> struct color_converted_view_fn {
+template <typename DstP, typename Result, typename CC = default_color_converter> struct color_converted_view_fn {
     typedef Result result_type;
-    template <typename View> result_type operator()(const View& src) const { return result_type(color_converted_view<DstP>(src)); }
+    color_converted_view_fn(CC cc = CC()): _cc(cc) {}
+
+    template <typename View> result_type operator()(const View& src) const { return result_type(color_converted_view<DstP>(src, _cc)); }
+
+    private:
+        CC _cc;
 };
 } // namespace detail
 
@@ -170,7 +175,7 @@ struct color_converted_view_type<any_image_view<ViewTypes>,DstP,CC> {
 /// \ingroup ImageViewTransformationsColorConvert
 /// \brief overload of generic color_converted_view with user defined color-converter
 template <typename DstP, typename ViewTypes, typename CC> inline // Models MPL Random Access Container of models of ImageViewConcept
-typename color_converted_view_type<any_image_view<ViewTypes>, DstP, CC>::type color_converted_view(const any_image_view<ViewTypes>& src,CC cc) { 
+typename color_converted_view_type<any_image_view<ViewTypes>, DstP, CC>::type color_converted_view(const any_image_view<ViewTypes>& src, CC) {
     return apply_operation(src,detail::color_converted_view_fn<DstP,typename color_converted_view_type<any_image_view<ViewTypes>, DstP, CC>::type >()); 
 }
 
@@ -193,7 +198,7 @@ typename color_converted_view_type<any_image_view<ViewTypes>, DstP>::type color_
 /// \brief overload of generic color_converted_view with user defined color-converter
 ///        These are workarounds for GCC 3.4, which thinks color_converted_view is ambiguous with the same method for templated views (in gil/image_view_factory.hpp)
 template <typename DstP, typename ViewTypes, typename CC> inline // Models MPL Random Access Container of models of ImageViewConcept
-typename color_converted_view_type<any_image_view<ViewTypes>, DstP, CC>::type any_color_converted_view(const any_image_view<ViewTypes>& src,CC cc) { 
+typename color_converted_view_type<any_image_view<ViewTypes>, DstP, CC>::type any_color_converted_view(const any_image_view<ViewTypes>& src, CC) {
     return apply_operation(src,detail::color_converted_view_fn<DstP,typename color_converted_view_type<any_image_view<ViewTypes>, DstP, CC>::type >()); 
 }
 

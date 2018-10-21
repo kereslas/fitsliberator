@@ -12,13 +12,13 @@
 #ifndef BOOST_BIMAP_PROPERTY_MAP_UNORDERED_SET_SUPPORT_HPP
 #define BOOST_BIMAP_PROPERTY_MAP_UNORDERED_SET_SUPPORT_HPP
 
-#if defined(_MSC_VER) && (_MSC_VER>=1200)
+#if defined(_MSC_VER)
 #pragma once
 #endif
 
 #include <boost/config.hpp>
 
-#include <boost/property_map.hpp>
+#include <boost/property_map/property_map.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
 #include <boost/bimap/support/data_type_by.hpp>
 #include <boost/bimap/support/key_type_by.hpp>

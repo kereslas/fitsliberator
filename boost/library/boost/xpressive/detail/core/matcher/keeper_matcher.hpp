@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // keeper_matcher.hpp
 //
-//  Copyright 2007 Eric Niebler. Distributed under the Boost
+//  Copyright 2008 Eric Niebler. Distributed under the Boost
 //  Software License, Version 1.0. (See accompanying file
 //  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -9,7 +9,7 @@
 #define BOOST_XPRESSIVE_DETAIL_CORE_MATCHER_KEEPER_MATCHER_HPP_EAN_10_04_2005
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -71,10 +71,12 @@ namespace boost { namespace xpressive { namespace detail
 
             if(!this->xpr_.match(state))
             {
+                restore_action_queue(mem, state);
                 reclaim_sub_matches(mem, state, false);
                 return false;
             }
-            else if(next.match(state))
+            restore_action_queue(mem, state);
+            if(next.match(state))
             {
                 reclaim_sub_matches(mem, state, true);
                 return true;

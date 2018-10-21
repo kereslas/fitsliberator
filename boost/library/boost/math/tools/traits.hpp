@@ -21,9 +21,12 @@ as defined above, and has member functions "scale" and "location".
 #ifndef BOOST_STATS_IS_DISTRIBUTION_HPP
 #define BOOST_STATS_IS_DISTRIBUTION_HPP
 
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 #include <boost/mpl/has_xxx.hpp>
-// should be the last #include
-#include <boost/type_traits/detail/bool_trait_def.hpp>
+#include <boost/type_traits/integral_constant.hpp>
 
 namespace boost{ namespace math{ namespace tools{
 
@@ -97,10 +100,11 @@ struct is_scaled_distribution_imp
 
 } // namespace detail
 
-BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_distribution,T,::boost::math::tools::detail::is_distribution_imp<T>::value)
-BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_scaled_distribution,T,::boost::math::tools::detail::is_scaled_distribution_imp<T>::value)
+template <class T> struct is_distribution : public boost::integral_constant<bool, ::boost::math::tools::detail::is_distribution_imp<T>::value> {};
+template <class T> struct is_scaled_distribution : public boost::integral_constant<bool, ::boost::math::tools::detail::is_scaled_distribution_imp<T>::value> {};
 
 }}}
 
 #endif
+
 

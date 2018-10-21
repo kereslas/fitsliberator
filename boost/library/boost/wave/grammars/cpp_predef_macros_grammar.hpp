@@ -3,7 +3,7 @@
 
     http://www.boost.org/
 
-    Copyright (c) 2001-2008 Hartmut Kaiser. Distributed under the Boost
+    Copyright (c) 2001-2012 Hartmut Kaiser. Distributed under the Boost
     Software License, Version 1.0. (See accompanying file
     LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
@@ -11,10 +11,10 @@
 #if !defined(CPP_PREDEF_MACROS_GRAMMAR_HPP_53858C9A_C202_4D60_AD92_DC9CAE4DBB43_INCLUDED)
 #define CPP_PREDEF_MACROS_GRAMMAR_HPP_53858C9A_C202_4D60_AD92_DC9CAE4DBB43_INCLUDED
 
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/tree/parse_tree.hpp>
-#include <boost/spirit/utility/confix.hpp>
-#include <boost/spirit/utility/lists.hpp>
+#include <boost/spirit/include/classic_core.hpp>
+#include <boost/spirit/include/classic_parse_tree.hpp>
+#include <boost/spirit/include/classic_confix.hpp>
+#include <boost/spirit/include/classic_lists.hpp>
 
 #include <boost/wave/wave_config.hpp>
 #include <boost/wave/token_ids.hpp>
@@ -39,25 +39,26 @@ namespace grammars {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Encapsulation of the grammar for command line driven predefined macros.
-struct predefined_macros_grammar : 
-    public boost::spirit::grammar<predefined_macros_grammar>
+struct predefined_macros_grammar :
+    public boost::spirit::classic::grammar<predefined_macros_grammar>
 {
     template <typename ScannerT>
     struct definition
     {
     // 'normal' (parse_tree generating) rule type
-        typedef boost::spirit::rule<ScannerT, boost::spirit::dynamic_parser_tag> 
+        typedef boost::spirit::classic::rule<
+                ScannerT, boost::spirit::classic::dynamic_parser_tag>
             rule_type;
 
         rule_type plain_define, macro_definition, macro_parameters;
 
-        definition(predefined_macros_grammar const &/*self*/) 
+        definition(predefined_macros_grammar const &/*self*/)
         {
         // import the spirit and cpplexer namespaces here
-            using namespace boost::spirit;
+            using namespace boost::spirit::classic;
             using namespace boost::wave;
             using namespace boost::wave::util;
-            
+
         // set the rule id's for later use
             plain_define.set_id(BOOST_WAVE_PLAIN_DEFINE_ID);
             macro_parameters.set_id(BOOST_WAVE_MACRO_PARAMETERS_ID);
@@ -75,10 +76,12 @@ struct predefined_macros_grammar :
         // make it possible to reuse the parse tree traversal code
             plain_define
                 =   (   ch_p(T_IDENTIFIER)
-                    |   pattern_p(KeywordTokenType, TokenTypeMask)
-                    |   pattern_p(OperatorTokenType|AltExtTokenType, 
-                            ExtTokenTypeMask)   // and, bit_and etc.
-                    |   pattern_p(BoolLiteralTokenType, TokenTypeMask)  // true/false
+                    |   pattern_p(KeywordTokenType,
+                            TokenTypeMask|PPTokenFlag)
+                    |   pattern_p(OperatorTokenType|AltExtTokenType,
+                            ExtTokenTypeMask|PPTokenFlag)   // and, bit_and etc.
+                    |   pattern_p(BoolLiteralTokenType,
+                            TokenTypeMask|PPTokenFlag)  // true/false
                     )
                     >>  !macro_parameters
                     >>  !macro_definition
@@ -90,14 +93,16 @@ struct predefined_macros_grammar :
                         no_node_d[ch_p(T_LEFTPAREN) >> *ch_p(T_SPACE)],
                        !list_p(
                             (   ch_p(T_IDENTIFIER)
-                            |   pattern_p(KeywordTokenType, TokenTypeMask)
-                            |   pattern_p(OperatorTokenType|AltExtTokenType, 
-                                    ExtTokenTypeMask)   // and, bit_and etc.
-                            |   pattern_p(BoolLiteralTokenType, TokenTypeMask)  // true/false
+                            |   pattern_p(KeywordTokenType,
+                                    TokenTypeMask|PPTokenFlag)
+                            |   pattern_p(OperatorTokenType|AltExtTokenType,
+                                    ExtTokenTypeMask|PPTokenFlag)   // and, bit_and etc.
+                            |   pattern_p(BoolLiteralTokenType,
+                                    TokenTypeMask|PPTokenFlag)  // true/false
 #if BOOST_WAVE_SUPPORT_VARIADICS_PLACEMARKERS != 0
                             |   ch_p(T_ELLIPSIS)
 #endif
-                            ), 
+                            ),
                             no_node_d
                             [
                                 *ch_p(T_SPACE) >> ch_p(T_COMMA) >> *ch_p(T_SPACE)
@@ -123,10 +128,10 @@ struct predefined_macros_grammar :
         { return plain_define; }
     };
 
-    predefined_macros_grammar() 
-    { 
-        BOOST_SPIRIT_DEBUG_TRACE_GRAMMAR_NAME(*this, 
-            "predefined_macros_grammar", TRACE_PREDEF_MACROS_GRAMMAR); 
+    predefined_macros_grammar()
+    {
+        BOOST_SPIRIT_DEBUG_TRACE_GRAMMAR_NAME(*this,
+            "predefined_macros_grammar", TRACE_PREDEF_MACROS_GRAMMAR);
     }
 
 };
@@ -135,27 +140,27 @@ struct predefined_macros_grammar :
 #undef TRACE_PREDEF_MACROS_GRAMMAR
 
 ///////////////////////////////////////////////////////////////////////////////
-//  
-//  The following parse function is defined here, to allow the separation of 
-//  the compilation of the cpp_predefined_macros_grammar from the function 
+//
+//  The following parse function is defined here, to allow the separation of
+//  the compilation of the cpp_predefined_macros_grammar from the function
 //  using it.
-//  
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 #if BOOST_WAVE_SEPARATE_GRAMMAR_INSTANTIATION != 0
 #define BOOST_WAVE_PREDEF_MACROS_GRAMMAR_GEN_INLINE
 #else
 #define BOOST_WAVE_PREDEF_MACROS_GRAMMAR_GEN_INLINE inline
-#endif 
+#endif
 
 template <typename LexIteratorT>
-BOOST_WAVE_PREDEF_MACROS_GRAMMAR_GEN_INLINE 
-boost::spirit::tree_parse_info<LexIteratorT>
+BOOST_WAVE_PREDEF_MACROS_GRAMMAR_GEN_INLINE
+boost::spirit::classic::tree_parse_info<LexIteratorT>
 predefined_macros_grammar_gen<LexIteratorT>::parse_predefined_macro (
     LexIteratorT const &first, LexIteratorT const &last)
 {
     predefined_macros_grammar g;
-    return boost::spirit::pt_parse (first, last, g);
+    return boost::spirit::classic::pt_parse (first, last, g);
 }
 
 #undef BOOST_WAVE_PREDEF_MACROS_GRAMMAR_GEN_INLINE

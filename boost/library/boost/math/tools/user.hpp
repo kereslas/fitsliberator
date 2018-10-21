@@ -9,6 +9,10 @@
 #ifndef BOOST_MATH_TOOLS_USER_HPP
 #define BOOST_MATH_TOOLS_USER_HPP
 
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 // This file can be modified by the user to change the default policies.
 // See "Changing the Policy Defaults" in documentation.
 
@@ -87,6 +91,15 @@
 // Maximum root finding steps permitted:
 //
 // define BOOST_MATH_MAX_ROOT_ITERATION_POLICY 200
+//
+// Enable use of __float128 in numeric constants:
+//
+// #define BOOST_MATH_USE_FLOAT128
+//
+// Disable use of __float128 in numeric_constants even if the compiler looks to support it:
+//
+// #define BOOST_MATH_DISABLE_FLOAT128
 
 #endif // BOOST_MATH_TOOLS_USER_HPP
+
 

@@ -1,6 +1,7 @@
 // Helper classes and functions for the circular buffer.
 
-// Copyright (c) 2003-2007 Jan Gaspar
+// Copyright (c) 2003-2008 Jan Gaspar
+// Copyright (c) 2014 Glen Joseph Fernandes   // C++11 allocator model support.
 
 // Use, modification, and distribution is subject to the Boost Software
 // License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -9,14 +10,26 @@
 #if !defined(BOOST_CIRCULAR_BUFFER_DETAILS_HPP)
 #define BOOST_CIRCULAR_BUFFER_DETAILS_HPP
 
-#if defined(_MSC_VER) && _MSC_VER >= 1200
+#if defined(_MSC_VER)
     #pragma once
 #endif
 
-#include <boost/iterator.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/container/allocator_traits.hpp>
+#include <boost/core/pointer_traits.hpp>
+#include <boost/move/move.hpp>
+#include <boost/type_traits/is_nothrow_move_constructible.hpp>
+#include <boost/utility/addressof.hpp>
 #include <boost/detail/no_exceptions_support.hpp>
 #include <iterator>
+
+// Silence MS /W4 warnings like C4913:
+// "user defined binary operator ',' exists but no overload could convert all operands, default built-in binary operator ',' used"
+// This might happen when previously including some boost headers that overload the coma operator.
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable:4913)
+#endif
 
 namespace boost {
 
@@ -29,8 +42,10 @@ void uninitialized_fill_n_with_alloc(
     ForwardIterator first, Diff n, const T& item, Alloc& alloc);
 
 template<class InputIterator, class ForwardIterator, class Alloc>
-ForwardIterator uninitialized_copy_with_alloc(
-    InputIterator first, InputIterator last, ForwardIterator dest, Alloc& alloc);
+ForwardIterator uninitialized_copy(InputIterator first, InputIterator last, ForwardIterator dest, Alloc& a);
+
+template<class InputIterator, class ForwardIterator, class Alloc>
+ForwardIterator uninitialized_move_if_noexcept(InputIterator first, InputIterator last, ForwardIterator dest, Alloc& a);
 
 /*!
     \struct const_traits
@@ -67,16 +82,6 @@ struct nonconst_traits {
 };
 
 /*!
-    \struct helper_pointer
-    \brief Helper pointer used in the iterator.
-*/
-template <class Traits>
-struct helper_pointer {
-    bool m_end;
-    typename Traits::pointer m_it;
-};
-
-/*!
     \struct iterator_wrapper
     \brief Helper iterator dereference wrapper.
 */
@@ -108,7 +113,7 @@ private:
 */
 template <class Value, class Alloc>
 struct assign_n {
-    typedef typename Alloc::size_type size_type;
+    typedef typename boost::container::allocator_traits<Alloc>::size_type size_type;
     size_type m_n;
     Value m_item;
     Alloc& m_alloc;
@@ -127,38 +132,44 @@ private:
 */
 template <class Iterator, class Alloc>
 struct assign_range {
-    const Iterator& m_first;
-    const Iterator& m_last;
-    Alloc& m_alloc;
+    Iterator m_first;
+    Iterator m_last;
+    Alloc&   m_alloc;
+
     assign_range(const Iterator& first, const Iterator& last, Alloc& alloc)
-    : m_first(first), m_last(last), m_alloc(alloc) {}
+        : m_first(first), m_last(last), m_alloc(alloc) {}
+
     template <class Pointer>
     void operator () (Pointer p) const {
-        uninitialized_copy_with_alloc(m_first, m_last, p, m_alloc);
+        boost::cb_details::uninitialized_copy(m_first, m_last, p, m_alloc);
     }
-private:
-    assign_range<Iterator, Alloc>& operator = (const assign_range<Iterator, Alloc>&); // do not generate
 };
 
+template <class Iterator, class Alloc>
+inline assign_range<Iterator, Alloc> make_assign_range(const Iterator& first, const Iterator& last, Alloc& a) {
+    return assign_range<Iterator, Alloc>(first, last, a);
+}
+
 /*!
-    \struct capacity_control
+    \class capacity_control
     \brief Capacity controller of the space optimized circular buffer.
 */
 template <class Size>
 class capacity_control {
 
-    //! The capacity of the space optimized circular buffer.
+    //! The capacity of the space-optimized circular buffer.
     Size m_capacity;
 
-    //! The lowest guaranteed capacity of the adapted circular buffer.
+    //! The lowest guaranteed or minimum capacity of the adapted space-optimized circular buffer.
     Size m_min_capacity;
 
 public:
 
     //! Constructor.
-    capacity_control(Size capacity, Size min_capacity = 0)
-    : m_capacity(capacity), m_min_capacity(min_capacity) {
-        BOOST_CB_ASSERT(capacity >= min_capacity); // check for capacity lower than min_capacity
+    capacity_control(Size buffer_capacity, Size min_buffer_capacity = 0)
+    : m_capacity(buffer_capacity), m_min_capacity(min_buffer_capacity)
+    { // Check for capacity lower than min_capacity.
+        BOOST_CB_ASSERT(buffer_capacity >= min_buffer_capacity);
     }
 
     // Default copy constructor.
@@ -176,7 +187,7 @@ public:
 };
 
 /*!
-    \class iterator
+    \struct iterator
     \brief Random access iterator for the circular buffer.
     \param Buff The type of the underlying circular buffer.
     \param Traits Basic iterator types.
@@ -184,8 +195,8 @@ public:
           for iterating from begin() to end() of the circular buffer.
 */
 template <class Buff, class Traits>
-class iterator :
-    public boost::iterator<
+struct iterator :
+    public std::iterator<
     std::random_access_iterator_tag,
     typename Traits::value_type,
     typename Traits::difference_type,
@@ -195,11 +206,10 @@ class iterator :
     , public debug_iterator_base
 #endif // #if BOOST_CB_ENABLE_DEBUG
 {
-private:
 // Helper types
 
     //! Base iterator.
-    typedef boost::iterator<
+    typedef std::iterator<
         std::random_access_iterator_tag,
         typename Traits::value_type,
         typename Traits::difference_type,
@@ -209,7 +219,6 @@ private:
     //! Non-const iterator.
     typedef iterator<Buff, typename Traits::nonconst_self> nonconst_self;
 
-public:
 // Basic types
 
     //! The type of the elements stored in the circular buffer.
@@ -227,7 +236,6 @@ public:
     //! Difference type.
     typedef typename base_iterator::difference_type difference_type;
 
-public:
 // Member variables
 
     //! The circular buffer where the iterator points to.
@@ -236,7 +244,6 @@ public:
     //! An internal iterator.
     pointer m_it;
 
-public:
 // Construction & assignment
 
     // Default copy constructor.
@@ -288,16 +295,11 @@ public:
     pointer operator -> () const { return &(operator*()); }
 
     //! Difference operator.
-    difference_type operator - (const iterator& it) const {
+    template <class Traits0>
+    difference_type operator - (const iterator<Buff, Traits0>& it) const {
         BOOST_CB_ASSERT(is_valid(m_buff));    // check for uninitialized or invalidated iterator
         BOOST_CB_ASSERT(it.is_valid(m_buff)); // check for uninitialized or invalidated iterator
-        helper_pointer<Traits> lhs = create_helper_pointer(*this);
-        helper_pointer<Traits> rhs = create_helper_pointer(it);
-        if (less(rhs, lhs) && lhs.m_it <= rhs.m_it)
-            return (lhs.m_it - rhs.m_it) + static_cast<difference_type>(m_buff->capacity());
-        if (less(lhs, rhs) && lhs.m_it >= rhs.m_it)
-            return (lhs.m_it - rhs.m_it) - static_cast<difference_type>(m_buff->capacity());
-        return lhs.m_it - rhs.m_it;
+        return linearize_pointer(*this) - linearize_pointer(it);
     }
 
     //! Increment operator (prefix).
@@ -355,7 +357,7 @@ public:
     iterator& operator -= (difference_type n) {
         BOOST_CB_ASSERT(is_valid(m_buff)); // check for uninitialized or invalidated iterator
         if (n > 0) {
-            BOOST_CB_ASSERT(m_buff->begin() - *this <= -n); // check for too large n
+            BOOST_CB_ASSERT(*this - m_buff->begin() >= n); // check for too large n
             m_it = m_buff->sub(m_it == 0 ? m_buff->m_last : m_it, n);
         } else if (n < 0) {
             *this += -n;
@@ -392,12 +394,12 @@ public:
     bool operator < (const iterator<Buff, Traits0>& it) const {
         BOOST_CB_ASSERT(is_valid(m_buff));    // check for uninitialized or invalidated iterator
         BOOST_CB_ASSERT(it.is_valid(m_buff)); // check for uninitialized or invalidated iterator
-        return less(create_helper_pointer(*this), create_helper_pointer(it));
+        return linearize_pointer(*this) < linearize_pointer(it);
     }
 
     //! Greater.
     template <class Traits0>
-    bool operator > (const iterator<Buff, Traits0>& it) const  { return it < *this; }
+    bool operator > (const iterator<Buff, Traits0>& it) const { return it < *this; }
 
     //! Less or equal.
     template <class Traits0>
@@ -407,44 +409,14 @@ public:
     template <class Traits0>
     bool operator >= (const iterator<Buff, Traits0>& it) const { return !(*this < it); }
 
-private:
 // Helpers
 
-    //! Create helper pointer.
+    //! Get a pointer which would point to the same element as the iterator in case the circular buffer is linearized.
     template <class Traits0>
-    helper_pointer<Traits0> create_helper_pointer(const iterator<Buff, Traits0>& it) const {
-        helper_pointer<Traits0> helper;
-        helper.m_end = (it.m_it == 0);
-        helper.m_it = helper.m_end ? m_buff->m_last : it.m_it;
-        return helper;
-    }
-
-    //! Less.
-    template <class InternalIterator0, class InternalIterator1>
-    bool less(const InternalIterator0& lhs, const InternalIterator1& rhs) const {
-        difference_type ldiff = lhs.m_it - m_buff->m_first;
-        difference_type rdiff = rhs.m_it - m_buff->m_first;
-        if (ldiff < 0) {
-            if (rdiff < 0)
-                return lhs.m_it < rhs.m_it;
-            else if (rdiff == 0)
-                return rhs.m_end;
-        } else if (ldiff == 0) {
-            if (rdiff < 0)
-                return !lhs.m_end;
-            else if (rdiff == 0)
-                return !lhs.m_end && rhs.m_end;
-            else
-                return !lhs.m_end;
-        } else { // ldiff > 0
-            if (rdiff < 0)
-                return true;
-            else if (rdiff == 0)
-                return rhs.m_end;
-            else
-                return lhs.m_it < rhs.m_it;
-        }
-        return false;
+    typename Traits0::pointer linearize_pointer(const iterator<Buff, Traits0>& it) const {
+        return it.m_it == 0 ? m_buff->m_buff + m_buff->size() :
+            (it.m_it < m_buff->m_first ? it.m_it + (m_buff->m_end - m_buff->m_first)
+                : m_buff->m_buff + (it.m_it - m_buff->m_first));
     }
 };
 
@@ -455,43 +427,47 @@ operator + (typename Traits::difference_type n, const iterator<Buff, Traits>& it
     return it + n;
 }
 
-#if defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_MSVC_STD_ITERATOR)
-
-//! Iterator category.
-template <class Buff, class Traits>
-inline std::random_access_iterator_tag iterator_category(const iterator<Buff, Traits>&) {
-    return std::random_access_iterator_tag();
-}
-
-//! The type of the elements stored in the circular buffer.
-template <class Buff, class Traits>
-inline typename Traits::value_type* value_type(const iterator<Buff, Traits>&) { return 0; }
-
-//! Distance type.
-template <class Buff, class Traits>
-inline typename Traits::difference_type* distance_type(const iterator<Buff, Traits>&) { return 0; }
-
-#endif // #if defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_MSVC_STD_ITERATOR)
-
 /*!
-    \fn ForwardIterator uninitialized_copy_with_alloc(InputIterator first, InputIterator last, ForwardIterator dest,
-            Alloc& alloc)
-    \brief Equivalent of <code>std::uninitialized_copy</code> with allocator.
+    \fn ForwardIterator uninitialized_copy(InputIterator first, InputIterator last, ForwardIterator dest)
+    \brief Equivalent of <code>std::uninitialized_copy</code> but with explicit specification of value type.
 */
 template<class InputIterator, class ForwardIterator, class Alloc>
-inline ForwardIterator uninitialized_copy_with_alloc(InputIterator first, InputIterator last, ForwardIterator dest,
-    Alloc& alloc) {
+inline ForwardIterator uninitialized_copy(InputIterator first, InputIterator last, ForwardIterator dest, Alloc& a) {
     ForwardIterator next = dest;
     BOOST_TRY {
         for (; first != last; ++first, ++dest)
-            alloc.construct(dest, *first);
+            boost::container::allocator_traits<Alloc>::construct(a, boost::to_address(dest), *first);
     } BOOST_CATCH(...) {
         for (; next != dest; ++next)
-            alloc.destroy(next);
+            boost::container::allocator_traits<Alloc>::destroy(a, boost::to_address(next));
         BOOST_RETHROW
     }
     BOOST_CATCH_END
     return dest;
+}
+
+template<class InputIterator, class ForwardIterator, class Alloc>
+ForwardIterator uninitialized_move_if_noexcept_impl(InputIterator first, InputIterator last, ForwardIterator dest, Alloc& a,
+    true_type) {
+    for (; first != last; ++first, ++dest)
+        boost::container::allocator_traits<Alloc>::construct(a, boost::to_address(dest), boost::move(*first));
+    return dest;
+}
+
+template<class InputIterator, class ForwardIterator, class Alloc>
+ForwardIterator uninitialized_move_if_noexcept_impl(InputIterator first, InputIterator last, ForwardIterator dest, Alloc& a,
+    false_type) {
+    return uninitialized_copy(first, last, dest, a);
+}
+
+/*!
+    \fn ForwardIterator uninitialized_move_if_noexcept(InputIterator first, InputIterator last, ForwardIterator dest)
+    \brief Equivalent of <code>std::uninitialized_copy</code> but with explicit specification of value type and moves elements if they have noexcept move constructors.
+*/
+template<class InputIterator, class ForwardIterator, class Alloc>
+ForwardIterator uninitialized_move_if_noexcept(InputIterator first, InputIterator last, ForwardIterator dest, Alloc& a) {
+    typedef typename boost::is_nothrow_move_constructible<typename boost::container::allocator_traits<Alloc>::value_type>::type tag_t;
+    return uninitialized_move_if_noexcept_impl(first, last, dest, a, tag_t());
 }
 
 /*!
@@ -503,10 +479,10 @@ inline void uninitialized_fill_n_with_alloc(ForwardIterator first, Diff n, const
     ForwardIterator next = first;
     BOOST_TRY {
         for (; n > 0; ++first, --n)
-            alloc.construct(first, item);
+            boost::container::allocator_traits<Alloc>::construct(alloc, boost::to_address(first), item);
     } BOOST_CATCH(...) {
         for (; next != first; ++next)
-            alloc.destroy(next);
+            boost::container::allocator_traits<Alloc>::destroy(alloc, boost::to_address(next));
         BOOST_RETHROW
     }
     BOOST_CATCH_END
@@ -515,5 +491,9 @@ inline void uninitialized_fill_n_with_alloc(ForwardIterator first, Diff n, const
 } // namespace cb_details
 
 } // namespace boost
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 #endif // #if !defined(BOOST_CIRCULAR_BUFFER_DETAILS_HPP)

@@ -12,7 +12,7 @@
 #ifndef BOOST_ASSIGN_ASSIGNMENT_EXCEPTION_HPP
 #define BOOST_ASSIGN_ASSIGNMENT_EXCEPTION_HPP
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -25,8 +25,8 @@ namespace boost
         class assignment_exception : public std::exception
         {
         public:
-            assignment_exception( const char* what ) 
-            : what_( what )
+            assignment_exception( const char* _what ) 
+            : what_( _what )
             { }
         
             virtual const char* what() const throw()

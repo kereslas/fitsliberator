@@ -15,3 +15,4 @@
 *.obj
 *.log
 /libtiff/project/Release
+/.vs

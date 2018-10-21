@@ -12,10 +12,11 @@
 #include <boost/math/special_functions/expm1.hpp>
 #include <boost/math/distributions/complement.hpp>
 #include <boost/math/distributions/detail/common_error_handling.hpp>
-#include <cmath>
+#include <boost/config/no_tr1/cmath.hpp>
 
 #ifdef BOOST_MSVC
 # pragma warning(push)
+# pragma warning(disable: 4127) // conditional expression is constant
 # pragma warning(disable: 4702) // unreachable code (return after domain_error throw).
 #endif
 
@@ -30,7 +31,7 @@ namespace detail{
 template <class RealType, class Policy>
 inline bool verify_lambda(const char* function, RealType l, RealType* presult, const Policy& pol)
 {
-   if(l <= 0)
+   if((l <= 0) || !(boost::math::isfinite)(l))
    {
       *presult = policies::raise_domain_error<RealType>(
          function,
@@ -43,7 +44,7 @@ inline bool verify_lambda(const char* function, RealType l, RealType* presult, c
 template <class RealType, class Policy>
 inline bool verify_exp_x(const char* function, RealType x, RealType* presult, const Policy& pol)
 {
-   if(x < 0)
+   if((x < 0) || (boost::math::isnan)(x))
    {
       *presult = policies::raise_domain_error<RealType>(
          function,
@@ -62,11 +63,11 @@ public:
    typedef RealType value_type;
    typedef Policy policy_type;
 
-   exponential_distribution(RealType lambda = 1)
-      : m_lambda(lambda)
+   exponential_distribution(RealType l_lambda = 1)
+      : m_lambda(l_lambda)
    {
       RealType err;
-      detail::verify_lambda("boost::math::exponential_distribution<%1%>::exponential_distribution", lambda, &err, Policy());
+      detail::verify_lambda("boost::math::exponential_distribution<%1%>::exponential_distribution", l_lambda, &err, Policy());
    } // exponential_distribution
 
    RealType lambda()const { return m_lambda; }
@@ -80,8 +81,15 @@ typedef exponential_distribution<double> exponential;
 template <class RealType, class Policy>
 inline const std::pair<RealType, RealType> range(const exponential_distribution<RealType, Policy>& /*dist*/)
 { // Range of permissible values for random variable x.
+  if (std::numeric_limits<RealType>::has_infinity)
+  { 
+    return std::pair<RealType, RealType>(static_cast<RealType>(0), std::numeric_limits<RealType>::infinity()); // 0 to + infinity.
+  }
+  else
+  {
    using boost::math::tools::max_value;
-   return std::pair<RealType, RealType>(static_cast<RealType>(0), max_value<RealType>());
+   return std::pair<RealType, RealType>(static_cast<RealType>(0), max_value<RealType>()); // 0 to + max
+  }
 }
 
 template <class RealType, class Policy>
@@ -89,7 +97,9 @@ inline const std::pair<RealType, RealType> support(const exponential_distributio
 { // Range of supported values for random variable x.
    // This is range where cdf rises from 0 to 1, and outside it, the pdf is zero.
    using boost::math::tools::max_value;
-   return std::pair<RealType, RealType>(0,  max_value<RealType>());
+   using boost::math::tools::min_value;
+   return std::pair<RealType, RealType>(min_value<RealType>(),  max_value<RealType>());
+   // min_value<RealType>() to avoid a discontinuity at x = 0.
 }
 
 template <class RealType, class Policy>
@@ -100,11 +110,14 @@ inline RealType pdf(const exponential_distribution<RealType, Policy>& dist, cons
    static const char* function = "boost::math::pdf(const exponential_distribution<%1%>&, %1%)";
 
    RealType lambda = dist.lambda();
-   RealType result;
+   RealType result = 0;
    if(0 == detail::verify_lambda(function, lambda, &result, Policy()))
       return result;
    if(0 == detail::verify_exp_x(function, x, &result, Policy()))
       return result;
+   // Workaround for VC11/12 bug:
+   if ((boost::math::isinf)(x))
+      return 0;
    result = lambda * exp(-lambda * x);
    return result;
 } // pdf
@@ -116,7 +129,7 @@ inline RealType cdf(const exponential_distribution<RealType, Policy>& dist, cons
 
    static const char* function = "boost::math::cdf(const exponential_distribution<%1%>&, %1%)";
 
-   RealType result;
+   RealType result = 0;
    RealType lambda = dist.lambda();
    if(0 == detail::verify_lambda(function, lambda, &result, Policy()))
       return result;
@@ -134,7 +147,7 @@ inline RealType quantile(const exponential_distribution<RealType, Policy>& dist,
 
    static const char* function = "boost::math::quantile(const exponential_distribution<%1%>&, %1%)";
 
-   RealType result;
+   RealType result = 0;
    RealType lambda = dist.lambda();
    if(0 == detail::verify_lambda(function, lambda, &result, Policy()))
       return result;
@@ -157,12 +170,15 @@ inline RealType cdf(const complemented2_type<exponential_distribution<RealType, 
 
    static const char* function = "boost::math::cdf(const exponential_distribution<%1%>&, %1%)";
 
-   RealType result;
+   RealType result = 0;
    RealType lambda = c.dist.lambda();
    if(0 == detail::verify_lambda(function, lambda, &result, Policy()))
       return result;
    if(0 == detail::verify_exp_x(function, c.param, &result, Policy()))
       return result;
+   // Workaround for VC11/12 bug:
+   if (c.param >= tools::max_value<RealType>())
+      return 0;
    result = exp(-c.param * lambda);
 
    return result;
@@ -175,7 +191,7 @@ inline RealType quantile(const complemented2_type<exponential_distribution<RealT
 
    static const char* function = "boost::math::quantile(const exponential_distribution<%1%>&, %1%)";
 
-   RealType result;
+   RealType result = 0;
    RealType lambda = c.dist.lambda();
    if(0 == detail::verify_lambda(function, lambda, &result, Policy()))
       return result;
@@ -196,7 +212,7 @@ inline RealType quantile(const complemented2_type<exponential_distribution<RealT
 template <class RealType, class Policy>
 inline RealType mean(const exponential_distribution<RealType, Policy>& dist)
 {
-   RealType result;
+   RealType result = 0;
    RealType lambda = dist.lambda();
    if(0 == detail::verify_lambda("boost::math::mean(const exponential_distribution<%1%>&)", lambda, &result, Policy()))
       return result;
@@ -206,7 +222,7 @@ inline RealType mean(const exponential_distribution<RealType, Policy>& dist)
 template <class RealType, class Policy>
 inline RealType standard_deviation(const exponential_distribution<RealType, Policy>& dist)
 {
-   RealType result;
+   RealType result = 0;
    RealType lambda = dist.lambda();
    if(0 == detail::verify_lambda("boost::math::standard_deviation(const exponential_distribution<%1%>&)", lambda, &result, Policy()))
       return result;

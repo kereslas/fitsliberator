@@ -13,6 +13,10 @@
 #ifndef BOOST_MATH_SP_DETAIL_BETA_INV_AB
 #define BOOST_MATH_SP_DETAIL_BETA_INV_AB
 
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 #include <boost/math/tools/toms748_solve.hpp>
 #include <boost/cstdint.hpp>
 
@@ -116,11 +120,11 @@ T ibeta_inv_ab_imp(const T& b, const T& z, const T& p, const T& q, bool swap_ab,
       //
       if((p < q) != swap_ab)
       {
-         guess = (std::min)(b * 2, T(1));
+         guess = (std::min)(T(b * 2), T(1));
       }
       else
       {
-         guess = (std::min)(b / 2, T(1));
+         guess = (std::min)(T(b / 2), T(1));
       }
    }
    if(n * n * n * u * sf > 0.005)
@@ -133,11 +137,11 @@ T ibeta_inv_ab_imp(const T& b, const T& z, const T& p, const T& q, bool swap_ab,
       //
       if((p < q) != swap_ab)
       {
-         guess = (std::min)(b * 2, T(10));
+         guess = (std::min)(T(b * 2), T(10));
       }
       else
       {
-         guess = (std::min)(b / 2, T(10));
+         guess = (std::min)(T(b / 2), T(10));
       }
    }
    else
@@ -149,7 +153,7 @@ T ibeta_inv_ab_imp(const T& b, const T& z, const T& p, const T& q, bool swap_ab,
    boost::uintmax_t max_iter = policies::get_max_root_iterations<Policy>();
    std::pair<T, T> r = bracket_and_solve_root(f, guess, factor, swap_ab ? true : false, tol, max_iter, pol);
    if(max_iter >= policies::get_max_root_iterations<Policy>())
-      policies::raise_evaluation_error<T>("boost::math::ibeta_invab_imp<%1%>(%1%,%1%,%1%)", "Unable to locate the root within a reasonable number of iterations, closest approximation so far was %1%", r.first, pol);
+      return policies::raise_evaluation_error<T>("boost::math::ibeta_invab_imp<%1%>(%1%,%1%,%1%)", "Unable to locate the root within a reasonable number of iterations, closest approximation so far was %1%", r.first, pol);
    return (r.first + r.second) / 2;
 }
 
@@ -168,9 +172,10 @@ typename tools::promote_args<RT1, RT2, RT3>::type
       policies::discrete_quantile<>,
       policies::assert_undefined<> >::type forwarding_policy;
 
+   static const char* function = "boost::math::ibeta_inva<%1%>(%1%,%1%,%1%)";
    if(p == 0)
    {
-      return tools::max_value<result_type>();
+      return policies::raise_overflow_error<result_type>(function, 0, Policy());
    }
    if(p == 1)
    {
@@ -182,9 +187,9 @@ typename tools::promote_args<RT1, RT2, RT3>::type
          static_cast<value_type>(b), 
          static_cast<value_type>(x), 
          static_cast<value_type>(p), 
-         1 - static_cast<value_type>(p), 
+         static_cast<value_type>(1 - static_cast<value_type>(p)), 
          false, pol), 
-      "boost::math::ibeta_inva<%1%>(%1%,%1%,%1%)");
+      function);
 }
 
 template <class RT1, class RT2, class RT3, class Policy>
@@ -200,9 +205,10 @@ typename tools::promote_args<RT1, RT2, RT3>::type
       policies::discrete_quantile<>,
       policies::assert_undefined<> >::type forwarding_policy;
 
+   static const char* function = "boost::math::ibetac_inva<%1%>(%1%,%1%,%1%)";
    if(q == 1)
    {
-      return tools::max_value<result_type>();
+      return policies::raise_overflow_error<result_type>(function, 0, Policy());
    }
    if(q == 0)
    {
@@ -213,10 +219,10 @@ typename tools::promote_args<RT1, RT2, RT3>::type
       detail::ibeta_inv_ab_imp(
          static_cast<value_type>(b), 
          static_cast<value_type>(x), 
-         1 - static_cast<value_type>(q), 
+         static_cast<value_type>(1 - static_cast<value_type>(q)), 
          static_cast<value_type>(q), 
          false, pol),
-      "boost::math::ibetac_inva<%1%>(%1%,%1%,%1%)");
+      function);
 }
 
 template <class RT1, class RT2, class RT3, class Policy>
@@ -232,13 +238,14 @@ typename tools::promote_args<RT1, RT2, RT3>::type
       policies::discrete_quantile<>,
       policies::assert_undefined<> >::type forwarding_policy;
 
+   static const char* function = "boost::math::ibeta_invb<%1%>(%1%,%1%,%1%)";
    if(p == 0)
    {
       return tools::min_value<result_type>();
    }
    if(p == 1)
    {
-      return tools::max_value<result_type>();
+      return policies::raise_overflow_error<result_type>(function, 0, Policy());
    }
 
    return policies::checked_narrowing_cast<result_type, forwarding_policy>(
@@ -246,15 +253,16 @@ typename tools::promote_args<RT1, RT2, RT3>::type
          static_cast<value_type>(a), 
          static_cast<value_type>(x), 
          static_cast<value_type>(p), 
-         1 - static_cast<value_type>(p), 
+         static_cast<value_type>(1 - static_cast<value_type>(p)), 
          true, pol),
-      "boost::math::ibeta_invb<%1%>(%1%,%1%,%1%)");
+      function);
 }
 
 template <class RT1, class RT2, class RT3, class Policy>
 typename tools::promote_args<RT1, RT2, RT3>::type 
       ibetac_invb(RT1 a, RT2 x, RT3 q, const Policy& pol)
 {
+   static const char* function = "boost::math::ibeta_invb<%1%>(%1%, %1%, %1%)";
    typedef typename tools::promote_args<RT1, RT2, RT3>::type result_type;
    typedef typename policies::evaluation<result_type, Policy>::type value_type;
    typedef typename policies::normalise<
@@ -270,17 +278,17 @@ typename tools::promote_args<RT1, RT2, RT3>::type
    }
    if(q == 0)
    {
-      return tools::max_value<result_type>();
+      return policies::raise_overflow_error<result_type>(function, 0, Policy());
    }
 
    return policies::checked_narrowing_cast<result_type, forwarding_policy>(
       detail::ibeta_inv_ab_imp(
          static_cast<value_type>(a), 
          static_cast<value_type>(x), 
-         1 - static_cast<value_type>(q), 
-         static_cast<value_type>(q), 
+         static_cast<value_type>(1 - static_cast<value_type>(q)), 
+         static_cast<value_type>(q),
          true, pol),
-         "boost::math::ibetac_invb<%1%>(%1%,%1%,%1%)");
+         function);
 }
 
 template <class RT1, class RT2, class RT3>
@@ -315,5 +323,6 @@ inline typename tools::promote_args<RT1, RT2, RT3>::type
 } // namespace boost
 
 #endif // BOOST_MATH_SP_DETAIL_BETA_INV_AB
+
 
 

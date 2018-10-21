@@ -11,9 +11,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /project24/CVS/liberator/boost/library/boost/mpl/aux_/config/has_xxx.hpp,v $
-// $Date: 2008/04/19 09:38:41 $
-// $Revision: 1.4 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/aux_/config/overload_resolution.hpp>
 #include <boost/mpl/aux_/config/workaround.hpp>
@@ -27,6 +27,7 @@
         )
 
 #   define BOOST_MPL_CFG_NO_HAS_XXX
+#   define BOOST_MPL_CFG_NO_HAS_XXX_TEMPLATE
 
 #endif
 

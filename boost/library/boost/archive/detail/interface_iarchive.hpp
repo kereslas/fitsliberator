@@ -2,7 +2,7 @@
 #define BOOST_ARCHIVE_DETAIL_INTERFACE_IARCHIVE_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -15,24 +15,20 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 //  See http://www.boost.org for updates, documentation, and revision history.
-#include <string>
+#include <cstddef> // NULL
 #include <boost/cstdint.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/archive/detail/auto_link_archive.hpp>
 #include <boost/archive/detail/iserializer.hpp>
+#include <boost/archive/detail/helper_collection.hpp>
+#include <boost/serialization/singleton.hpp>
 #include <boost/archive/detail/abi_prefix.hpp> // must be the last header
 
 namespace boost {
-template<class T>
-class shared_ptr;
-namespace serialization {
-    class extended_type_info;
-} // namespace serialization
-
 namespace archive {
 namespace detail {
 
-class BOOST_ARCHIVE_OR_WARCHIVE_DECL(BOOST_PP_EMPTY()) basic_pointer_iserializer;
+class basic_pointer_iserializer;
 
 template<class Archive>
 class interface_iarchive 
@@ -54,13 +50,22 @@ public:
     const basic_pointer_iserializer * 
     register_type(T * = NULL){
         const basic_pointer_iserializer & bpis =
-            pointer_iserializer<Archive, T>::get_instance();
+            boost::serialization::singleton<
+                pointer_iserializer<Archive, T> 
+            >::get_const_instance();
         this->This()->register_basic_serializer(bpis.get_basic_serializer());
         return & bpis;
     }
+    template<class Helper>
+    Helper &
+    get_helper(void * const id = 0){
+        helper_collection & hc = this->This()->get_helper_collection();
+        return hc.template find_helper<Helper>(id);
+    }
+    
     template<class T>
     Archive & operator>>(T & t){
-        this->This()->load_override(t, 0);
+        this->This()->load_override(t);
         return * this->This();
     }
 

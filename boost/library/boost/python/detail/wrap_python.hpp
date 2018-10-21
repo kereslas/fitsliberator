@@ -85,13 +85,22 @@
 #if defined(_WIN32) || defined(__CYGWIN__)
 # if defined(__GNUC__) && defined(__CYGWIN__)
 
-#  define SIZEOF_LONG 4
+#  if defined(__LP64__)
+#   define SIZEOF_LONG 8
+#  else
+#   define SIZEOF_LONG 4
+#  endif
+
 
 #  if PY_MAJOR_VERSION < 2 || PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION <= 2
 
 typedef int pid_t;
 
-#   define WORD_BIT 32
+#   if defined(__LP64__)
+#    define WORD_BIT 64
+#   else
+#    define WORD_BIT 32
+#   endif
 #   define hypot _hypot
 #   include <stdio.h>
 
@@ -174,6 +183,19 @@ typedef int pid_t;
 # define PyObject_INIT(op, typeobj) \
         ( (op)->ob_type = (typeobj), _Py_NewReference((PyObject *)(op)), (op) )
 #endif
+
+// Define Python 3 macros for Python 2.x
+#if PY_VERSION_HEX < 0x02060000
+
+# define Py_TYPE(o)    (((PyObject*)(o))->ob_type)
+# define Py_REFCNT(o)  (((PyObject*)(o))->ob_refcnt)
+# define Py_SIZE(o)    (((PyVarObject*)(o))->ob_size)
+
+# define PyVarObject_HEAD_INIT(type, size) \
+        PyObject_HEAD_INIT(type) size,
+
+#endif
+
 
 #ifdef __MWERKS__
 # pragma warn_possunwant off

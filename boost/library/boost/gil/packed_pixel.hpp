@@ -18,11 +18,12 @@
 /// \brief A model of a heterogeneous pixel whose channels are bit ranges. For example 16-bit RGB in '565' format
 /// \author Lubomir Bourdev and Hailin Jin \n
 ///         Adobe Systems Incorporated
-/// \date   2005-2007 \n Last updated on September 28, 2006
+/// \date   2005-2009 \n Last updated on February 20, 2009
 ///
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <functional>
+#include <boost/core/ignore_unused.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/mpl/front.hpp>
@@ -56,7 +57,7 @@ assert(r565 == rgb565_pixel_t((uint16_t)0xFFFF));
 /// \ingroup ColorBaseModelPackedPixel PixelModelPackedPixel PixelBasedModel
 /// \brief Heterogeneous pixel value whose channel references can be constructed from the pixel bitfield and their index. Models ColorBaseValueConcept, PixelValueConcept, PixelBasedConcept
 /// Typical use for this is a model of a packed pixel (like 565 RGB)
-template <typename BitField,      // A type that holds the bits of the pixel. Typically an integral type, like boost::uint16_t
+template <typename BitField,      // A type that holds the bits of the pixel. Typically an integral type, like std::uint16_t
           typename ChannelRefVec, // An MPL vector whose elements are packed channels. They must be constructible from BitField. GIL uses packed_channel_reference
           typename Layout>        // Layout defining the color space and ordering of the channels. Example value: rgb_layout_t
 struct packed_pixel {
@@ -74,22 +75,27 @@ struct packed_pixel {
 
     // Construct from another compatible pixel type
     packed_pixel(const packed_pixel& p) : _bitfield(p._bitfield) {}
-    template <typename P> packed_pixel(const P& p, typename enable_if_c<is_pixel<P>::value>::type* d=0)            { check_compatible<P>(); static_copy(p,*this); }   
-    packed_pixel(int chan0, int chan1) : _bitfield(0) { 
+    template <typename P> packed_pixel(const P& p, typename enable_if_c<is_pixel<P>::value>::type* d=0) {
+        check_compatible<P>(); static_copy(p,*this);
+        boost::ignore_unused(d);
+    }
+    packed_pixel(int chan0, int chan1) : _bitfield(0) {
         BOOST_STATIC_ASSERT((num_channels<packed_pixel>::value==2)); 
-        at_c<0>(*this)=chan0; at_c<1>(*this)=chan1; 
+        gil::at_c<0>(*this)=chan0; gil::at_c<1>(*this)=chan1; 
     } 
     packed_pixel(int chan0, int chan1, int chan2) : _bitfield(0) { 
         BOOST_STATIC_ASSERT((num_channels<packed_pixel>::value==3)); 
-        at_c<0>(*this)=chan0; at_c<1>(*this)=chan1; at_c<2>(*this)=chan2; 
+        gil::at_c<0>(*this) = chan0;
+        gil::at_c<1>(*this) = chan1;
+        gil::at_c<2>(*this) = chan2;
     } 
     packed_pixel(int chan0, int chan1, int chan2, int chan3) : _bitfield(0) { 
         BOOST_STATIC_ASSERT((num_channels<packed_pixel>::value==4)); 
-        at_c<0>(*this)=chan0; at_c<1>(*this)=chan1; at_c<2>(*this)=chan2; at_c<2>(*this)=chan3; 
+        gil::at_c<0>(*this)=chan0; gil::at_c<1>(*this)=chan1; gil::at_c<2>(*this)=chan2; gil::at_c<3>(*this)=chan3; 
     } 
     packed_pixel(int chan0, int chan1, int chan2, int chan3, int chan4) : _bitfield(0) { 
         BOOST_STATIC_ASSERT((num_channels<packed_pixel>::value==5)); 
-        at_c<0>(*this)=chan0; at_c<1>(*this)=chan1; at_c<2>(*this)=chan2; at_c<2>(*this)=chan3;  at_c<3>(*this)=chan4;
+        gil::at_c<0>(*this)=chan0; gil::at_c<1>(*this)=chan1; gil::at_c<2>(*this)=chan2; gil::at_c<3>(*this)=chan3; gil::at_c<4>(*this)=chan4;
     } 
 
     packed_pixel& operator=(const packed_pixel& p)     { _bitfield=p._bitfield; return *this; }
@@ -106,11 +112,11 @@ private:
 
 // Support for assignment/equality comparison of a channel with a grayscale pixel
     static void check_gray() {  BOOST_STATIC_ASSERT((is_same<typename Layout::color_space_t, gray_t>::value)); }
-    template <typename Channel> void assign(const Channel& chan, mpl::false_)       { check_gray(); at_c<0>(*this)=chan; }
-    template <typename Channel> bool equal (const Channel& chan, mpl::false_) const { check_gray(); return at_c<0>(*this)==chan; }
+    template <typename Channel> void assign(const Channel& chan, mpl::false_)       { check_gray(); gil::at_c<0>(*this)=chan; }
+    template <typename Channel> bool equal (const Channel& chan, mpl::false_) const { check_gray(); return gil::at_c<0>(*this)==chan; }
 public:
-    packed_pixel&  operator= (int chan)       { check_gray(); at_c<0>(*this)=chan; return *this; }
-    bool           operator==(int chan) const { check_gray(); return at_c<0>(*this)==chan; }
+    packed_pixel&  operator= (int chan)       { check_gray(); gil::at_c<0>(*this)=chan; return *this; }
+    bool           operator==(int chan) const { check_gray(); return gil::at_c<0>(*this)==chan; }
 };
 
 /////////////////////////////

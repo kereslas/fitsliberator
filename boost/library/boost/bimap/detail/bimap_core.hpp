@@ -12,7 +12,7 @@
 #ifndef BOOST_BIMAP_DETAIL_BIMAP_CORE_HPP
 #define BOOST_BIMAP_DETAIL_BIMAP_CORE_HPP
 
-#if defined(_MSC_VER) && (_MSC_VER>=1200)
+#if defined(_MSC_VER)
 #pragma once
 #endif
 
@@ -92,34 +92,34 @@ class bimap_core
     typedef BOOST_DEDUCED_TYPENAME manage_bimap_key
     <
         RightSetType
-    
-	>::type right_set_type;
 
-	
-	private:
+    >::type right_set_type;
 
-	typedef BOOST_DEDUCED_TYPENAME ::boost::bimaps::tags::support::default_tagged
-	< 
-		BOOST_DEDUCED_TYPENAME left_set_type::user_type,
-		::boost::bimaps::relation::member_at::left 
-	
-	>::type left_tagged_type;
 
-	typedef BOOST_DEDUCED_TYPENAME ::boost::bimaps::tags::support::default_tagged
-	< 
-		BOOST_DEDUCED_TYPENAME right_set_type::user_type,
-		::boost::bimaps::relation::member_at::right
-	
-	>::type right_tagged_type;
+    private:
 
-	public:
+    typedef BOOST_DEDUCED_TYPENAME ::boost::bimaps::tags::support::default_tagged
+    <
+        BOOST_DEDUCED_TYPENAME left_set_type::user_type,
+        ::boost::bimaps::relation::member_at::left
 
-	//@{
+    >::type left_tagged_type;
 
-		typedef BOOST_DEDUCED_TYPENAME  left_tagged_type::tag  left_tag;
-		typedef BOOST_DEDUCED_TYPENAME right_tagged_type::tag right_tag;
+    typedef BOOST_DEDUCED_TYPENAME ::boost::bimaps::tags::support::default_tagged
+    <
+        BOOST_DEDUCED_TYPENAME right_set_type::user_type,
+        ::boost::bimaps::relation::member_at::right
 
-	//@}
+    >::type right_tagged_type;
+
+    public:
+
+    //@{
+
+        typedef BOOST_DEDUCED_TYPENAME  left_tagged_type::tag  left_tag;
+        typedef BOOST_DEDUCED_TYPENAME right_tagged_type::tag right_tag;
+
+    //@}
 
     //@{
 
@@ -279,7 +279,7 @@ class bimap_core
     /* else */ BOOST_DEDUCED_TYPENAME mpl::if_<
             is_same< BOOST_DEDUCED_TYPENAME parameters::set_type_of_relation, right_based >,
     // {
-			::boost::bimaps::tags::tagged< right_set_type, right_tag >,
+            ::boost::bimaps::tags::tagged< right_set_type, right_tag >,
     // }
     // else
     // {
@@ -425,50 +425,6 @@ class bimap_core
     typedef BOOST_DEDUCED_TYPENAME right_index::iterator       right_core_iterator;
     typedef BOOST_DEDUCED_TYPENAME right_index::const_iterator right_core_const_iterator;
 
-    // Map by {side} iterator metadata
-    // --------------------------------------------------------------------
-    public:
-
-    //@{
-
-        typedef ::boost::bimaps::detail::map_view_iterator
-        <
-            left_tag,
-            relation,
-            left_core_iterator
-
-        > left_iterator;
-
-        typedef ::boost::bimaps::detail::map_view_iterator
-        <
-            right_tag,
-            relation,
-            right_core_iterator
-
-        > right_iterator;
-
-    //@}
-
-    //@{
-
-        typedef ::boost::bimaps::detail::const_map_view_iterator
-        <
-            left_tag,
-            relation,
-            left_core_const_iterator
-
-        > left_const_iterator;
-
-        typedef ::boost::bimaps::detail::const_map_view_iterator
-        <
-            right_tag,
-            relation,
-            right_core_const_iterator
-
-        > right_const_iterator;
-
-    //@}
-
     // Relation set view
 
     typedef BOOST_DEDUCED_TYPENAME ::boost::multi_index::index
@@ -496,7 +452,7 @@ class bimap_core
 template< class BimapBaseType >
 struct left_map_view_type
 {
-	typedef BOOST_DEDUCED_TYPENAME BimapBaseType::left_set_type left_set_type;
+    typedef BOOST_DEDUCED_TYPENAME BimapBaseType::left_set_type left_set_type;
     typedef BOOST_DEDUCED_TYPENAME
         left_set_type::BOOST_NESTED_TEMPLATE map_view_bind<
             BOOST_DEDUCED_TYPENAME BimapBaseType::left_tag, BimapBaseType
@@ -506,12 +462,13 @@ struct left_map_view_type
 template< class BimapBaseType >
 struct right_map_view_type
 {
-	typedef BOOST_DEDUCED_TYPENAME BimapBaseType::right_set_type right_set_type;
+    typedef BOOST_DEDUCED_TYPENAME BimapBaseType::right_set_type right_set_type;
     typedef BOOST_DEDUCED_TYPENAME
         right_set_type::BOOST_NESTED_TEMPLATE map_view_bind<
             BOOST_DEDUCED_TYPENAME BimapBaseType::right_tag, BimapBaseType
         >::type type;
 };
+
 
 } // namespace detail
 } // namespace bimaps

@@ -2,7 +2,7 @@
 // handler_invoke_hook.hpp
 // ~~~~~~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2008 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2018 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,21 +15,24 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <boost/asio/detail/config.hpp>
+
 #include <boost/asio/detail/push_options.hpp>
 
 namespace boost {
 namespace asio {
 
-/// Default invoke function for handlers.
-/**
+/** @defgroup asio_handler_invoke boost::asio::asio_handler_invoke
+ *
+ * @brief Default invoke function for handlers.
+ *
  * Completion handlers for asynchronous operations are invoked by the
- * io_service associated with the corresponding object (e.g. a socket or
+ * io_context associated with the corresponding object (e.g. a socket or
  * deadline_timer). Certain guarantees are made on when the handler may be
  * invoked, in particular that a handler can only be invoked from a thread that
- * is currently calling boost::asio::io_service::run() on the corresponding
- * io_service object. Handlers may subsequently be invoked through other
- * objects (such as boost::asio::strand objects) that provide additional
- * guarantees.
+ * is currently calling @c run() on the corresponding io_context object.
+ * Handlers may subsequently be invoked through other objects (such as
+ * io_context::strand objects) that provide additional guarantees.
  *
  * When asynchronous operations are composed from other asynchronous
  * operations, all intermediate handlers should be invoked using the same
@@ -41,10 +44,10 @@ namespace asio {
  * Implement asio_handler_invoke for your own handlers to specify a custom
  * invocation strategy.
  *
- * This default implementation is simply:
- * @code
- * function();
- * @endcode
+ * This default implementation invokes the function object like so:
+ * @code function(); @endcode
+ * If necessary, the default implementation makes a copy of the function object
+ * so that the non-const operator() can be used.
  *
  * @par Example
  * @code
@@ -57,11 +60,24 @@ namespace asio {
  * }
  * @endcode
  */
+/*@{*/
+
+/// Default handler invocation hook used for non-const function objects.
 template <typename Function>
-inline void asio_handler_invoke(Function function, ...)
+inline void asio_handler_invoke(Function& function, ...)
 {
   function();
 }
+
+/// Default handler invocation hook used for const function objects.
+template <typename Function>
+inline void asio_handler_invoke(const Function& function, ...)
+{
+  Function tmp(function);
+  tmp();
+}
+
+/*@}*/
 
 } // namespace asio
 } // namespace boost

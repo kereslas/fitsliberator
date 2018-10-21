@@ -12,11 +12,11 @@
 #ifndef BOOST_ASSIGN_PTR_LIST_OF_HPP
 #define BOOST_ASSIGN_PTR_LIST_OF_HPP
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
-#include <boost/assign/assignment_exception.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/type_traits/remove_const.hpp>
 #include <boost/type_traits/remove_reference.hpp>
 #include <boost/type_traits/is_reference.hpp>
@@ -41,16 +41,22 @@ namespace assign_detail
     /////////////////////////////////////////////////////////////////////////    
 
     template< class T > 
-    class generic_ptr_list       
+    class generic_ptr_list : 
+        public converter< generic_ptr_list<T>,
+                          BOOST_DEDUCED_TYPENAME boost::ptr_vector<T>::iterator >      
     {
     protected:
         typedef boost::ptr_vector<T>       impl_type;
+#if defined(BOOST_NO_AUTO_PTR)
+        typedef std::unique_ptr<impl_type> release_type;
+#else
         typedef std::auto_ptr<impl_type>   release_type;
+#endif	
         mutable impl_type                  values_;
         
     public:
         typedef BOOST_DEDUCED_TYPENAME impl_type::iterator         iterator;
-        typedef BOOST_DEDUCED_TYPENAME impl_type::const_iterator   const_iterator;
+        typedef iterator                                           const_iterator;
         typedef BOOST_DEDUCED_TYPENAME impl_type::value_type       value_type;
         typedef BOOST_DEDUCED_TYPENAME impl_type::size_type        size_type;
         typedef BOOST_DEDUCED_TYPENAME impl_type::difference_type  difference_type;
@@ -58,12 +64,6 @@ namespace assign_detail
         generic_ptr_list() : values_( 32u )
         { }
 
-        /*
-        generic_ptr_list( const generic_ptr_list& r )
-        {
-            values_.swap(r.values_);
-        }*/
-        
         generic_ptr_list( release_type r ) : values_(r)
         { }
 
@@ -96,9 +96,18 @@ namespace assign_detail
         }
 
         template< class PtrContainer >
-        std::auto_ptr<PtrContainer> convert( const PtrContainer* c ) const
+#if defined(BOOST_NO_AUTO_PTR)
+        std::unique_ptr<PtrContainer>
+#else
+        std::auto_ptr<PtrContainer>
+#endif	
+		convert( const PtrContainer* c ) const
         {
+#if defined(BOOST_NO_AUTO_PTR)
+            std::unique_ptr<PtrContainer> res( new PtrContainer() );
+#else
             std::auto_ptr<PtrContainer> res( new PtrContainer() );
+#endif	
             while( !empty() )
                 res->insert( res->end(), 
                              values_.pop_back().release() );
@@ -106,7 +115,12 @@ namespace assign_detail
         }
 
         template< class PtrContainer >
-        std::auto_ptr<PtrContainer> to_container( const PtrContainer& c ) const
+#if defined(BOOST_NO_AUTO_PTR)
+        std::unique_ptr<PtrContainer>
+#else
+        std::auto_ptr<PtrContainer>
+#endif	
+        to_container( const PtrContainer& c ) const
         {
             return convert( &c ); 
         }

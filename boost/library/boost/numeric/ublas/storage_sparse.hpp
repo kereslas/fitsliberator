@@ -390,7 +390,6 @@ namespace boost { namespace numeric { namespace ublas {
             if (it != end () && it->first == p.first)
                 return std::make_pair (it, false);
             difference_type n = it - begin ();
-            BOOST_UBLAS_CHECK (size () == 0 || size () == size_type (n), external_logic ());
             resize (size () + 1);
             it = begin () + n;    // allow for invalidation
             std::copy_backward (it, end () - 1, end ());
@@ -410,6 +409,7 @@ namespace boost { namespace numeric { namespace ublas {
         }
         // BOOST_UBLAS_INLINE This function seems to be big. So we do not let the compiler inline it.    
         void erase (iterator it1, iterator it2) {
+            if (it1 == it2) return /* nothing to erase */;
             BOOST_UBLAS_CHECK (begin () <= it1 && it1 < it2 && it2 <= end (), bad_index ());
             std::copy (it2, end (), it1);
             resize (size () - (it2 - it1));
@@ -448,8 +448,16 @@ namespace boost { namespace numeric { namespace ublas {
             return data_;
         }
         BOOST_UBLAS_INLINE
+        const_iterator cbegin () const {
+            return begin ();
+        }
+        BOOST_UBLAS_INLINE
         const_iterator end () const {
             return data_ + size_;
+        }
+        BOOST_UBLAS_INLINE
+        const_iterator cend () const {
+            return end ();
         }
 
         BOOST_UBLAS_INLINE
@@ -470,9 +478,18 @@ namespace boost { namespace numeric { namespace ublas {
             return const_reverse_iterator (end ());
         }
         BOOST_UBLAS_INLINE
+        const_reverse_iterator crbegin () const {
+            return rbegin ();
+        }
+        BOOST_UBLAS_INLINE
         const_reverse_iterator rend () const {
             return const_reverse_iterator (begin ());
         }
+        BOOST_UBLAS_INLINE
+        const_reverse_iterator crend () const {
+            return rend ();
+        }
+
         BOOST_UBLAS_INLINE
         reverse_iterator rbegin () {
             return reverse_iterator (end ());

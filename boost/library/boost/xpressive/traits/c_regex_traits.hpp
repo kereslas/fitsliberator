@@ -4,7 +4,7 @@
 /// wrapper for the C locale functions that can be used to customize the
 /// behavior of static and dynamic regexes.
 //
-//  Copyright 2007 Eric Niebler. Distributed under the Boost
+//  Copyright 2008 Eric Niebler. Distributed under the Boost
 //  Software License, Version 1.0. (See accompanying file
 //  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -12,7 +12,7 @@
 #define BOOST_XPRESSIVE_TRAITS_C_REGEX_TRAITS_HPP_EAN_10_04_2005
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -113,7 +113,7 @@ struct regex_traits_version_1_tag;
 // c_regex_traits
 //
 /// \brief Encapsaulates the standard C locale functions for use by the
-/// basic_regex\<\> class template.
+/// \c basic_regex\<\> class template.
 template<typename Char>
 struct c_regex_traits
   : detail::c_regex_traits_base<Char>
@@ -200,12 +200,12 @@ struct c_regex_traits
         return detail::c_toupper(ch);
     }
 
-    /// Returns a string_type containing all the characters that compare equal
+    /// Returns a \c string_type containing all the characters that compare equal
     /// disregrarding case to the one passed in. This function can only be called
-    /// if has_fold_case<c_regex_traits<Char> >::value is true.
+    /// if <tt>has_fold_case\<c_regex_traits\<Char\> \>::value</tt> is \c true.
     ///
     /// \param ch The source character.
-    /// \return string_type containing all chars which are equal to ch when disregarding
+    /// \return \c string_type containing all chars which are equal to \c ch when disregarding
     ///     case
     //typedef array<char_type, 2> fold_case_type;
     string_type fold_case(char_type ch) const
@@ -253,7 +253,7 @@ struct c_regex_traits
     /// such that if the character sequence [G1, G2) sorts before the character sequence [H1, H2)
     /// then v.transform(G1, G2) < v.transform(H1, H2).
     ///
-    /// \attention Not used in xpressive 1.0
+    /// \attention Not currently used
     template<typename FwdIter>
     static string_type transform(FwdIter begin, FwdIter end)
     {
@@ -265,7 +265,7 @@ struct c_regex_traits
     /// when character case is not considered then
     /// v.transform_primary(G1, G2) < v.transform_primary(H1, H2).
     ///
-    /// \attention Not used in xpressive 1.0
+    /// \attention Not currently used
     template<typename FwdIter>
     static string_type transform_primary(FwdIter begin, FwdIter end)
     {
@@ -276,7 +276,7 @@ struct c_regex_traits
     /// consisting of the character sequence designated by the iterator range [F1, F2).
     /// Returns an empty string if the character sequence is not a valid collating element.
     ///
-    /// \attention Not used in xpressive 1.0
+    /// \attention Not currently used
     template<typename FwdIter>
     static string_type lookup_collatename(FwdIter begin, FwdIter end)
     {

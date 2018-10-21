@@ -2,7 +2,7 @@
 #define BOOST_ARCHIVE_POLYMORPHIC_XML_WOARCHIVE_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -22,13 +22,13 @@
 #else
 
 #include <boost/archive/xml_woarchive.hpp>
-#include <boost/archive/detail/polymorphic_oarchive_dispatch.hpp>
+#include <boost/archive/detail/polymorphic_oarchive_route.hpp>
 
 namespace boost { 
 namespace archive {
 
-typedef detail::polymorphic_oarchive_dispatch<
-        xml_woarchive_impl<naked_xml_woarchive> 
+typedef detail::polymorphic_oarchive_route<
+        xml_woarchive_impl<xml_woarchive> 
 > polymorphic_xml_woarchive;
 
 } // namespace archive

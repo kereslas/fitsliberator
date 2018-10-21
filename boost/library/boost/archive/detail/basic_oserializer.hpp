@@ -2,7 +2,7 @@
 #define BOOST_SERIALIZATION_BASIC_OSERIALIZER_HPP
 
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(_MSC_VER)
 # pragma once
 #endif
 
@@ -16,16 +16,22 @@
 
 //  See http://www.boost.org for updates, documentation, and revision history.
 
-#include <cstdlib> // NULL
+#include <cstddef> // NULL
 #include <boost/config.hpp>
+#include <boost/noncopyable.hpp>
 
+#include <boost/archive/basic_archive.hpp>
 #include <boost/archive/detail/auto_link_archive.hpp>
 #include <boost/archive/detail/basic_serializer.hpp>
 
 #include <boost/archive/detail/abi_prefix.hpp> // must be the last header
 
-namespace boost {
+#ifdef BOOST_MSVC
+#  pragma warning(push)
+#  pragma warning(disable : 4511 4512)
+#endif
 
+namespace boost {
 namespace serialization {
     class extended_type_info;
 } // namespace serialization
@@ -34,32 +40,28 @@ namespace serialization {
 namespace archive {
 namespace detail {
 
-class BOOST_ARCHIVE_DECL(BOOST_PP_EMPTY()) basic_oarchive;
-class BOOST_ARCHIVE_DECL(BOOST_PP_EMPTY()) basic_pointer_oserializer;
+class basic_oarchive;
+class basic_pointer_oserializer;
 
-class BOOST_ARCHIVE_DECL(BOOST_PP_EMPTY()) basic_oserializer : 
+class BOOST_SYMBOL_VISIBLE basic_oserializer :
     public basic_serializer
 {
 private:
-    basic_pointer_oserializer *bpos;
+    basic_pointer_oserializer *m_bpos;
 protected:
-    explicit basic_oserializer(
+    explicit BOOST_ARCHIVE_DECL basic_oserializer(
         const boost::serialization::extended_type_info & type_
     );
-    // account for bogus gcc warning
-    #if defined(__GNUC__)
-    virtual
-    #endif
-    ~basic_oserializer();
+    virtual BOOST_ARCHIVE_DECL ~basic_oserializer();
 public:
     bool serialized_as_pointer() const {
-        return bpos != NULL;
+        return m_bpos != NULL;
     }
-    void set_bpos(basic_pointer_oserializer *bpos_){
-        bpos = bpos_;
+    void set_bpos(basic_pointer_oserializer *bpos){
+        m_bpos = bpos;
     }
     const basic_pointer_oserializer * get_bpos() const {
-        return bpos;
+        return m_bpos;
     }
     virtual void save_object_data(
         basic_oarchive & ar, const void * x
@@ -69,7 +71,7 @@ public:
     // returns true if objects should be tracked
     virtual bool tracking(const unsigned int flags) const = 0;
     // returns class version
-    virtual unsigned int version() const = 0;
+    virtual version_type version() const = 0;
     // returns true if this class is polymorphic
     virtual bool is_polymorphic() const = 0;
 };
@@ -77,6 +79,10 @@ public:
 } // namespace detail
 } // namespace serialization
 } // namespace boost
+
+#ifdef BOOST_MSVC
+#pragma warning(pop)
+#endif
 
 #include <boost/archive/detail/abi_suffix.hpp> // pops abi_suffix.hpp pragmas
 
