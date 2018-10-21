@@ -1,0 +1,17 @@
+/tinyxml/intermediate
+/tinyxml/binaries
+/pds_toolbox/binaries
+/pds_toolbox/intermediate
+/cfitsio/binaries
+/cfitsio/intermediate
+/liberator/intermediate
+/liberator/project/windows/.vs
+*.vcxproj.user
+*.pdb
+/liberator/binaries/FL_30_Win.exe
+/liberator/project/windows/FitsLiberator.sdf
+/liberator/project/windows/FitsLiberator.VC.db
+/liberator/project/windows/FitsLiberator.v11.suo
+*.obj
+*.log
+/libtiff/project/Release
