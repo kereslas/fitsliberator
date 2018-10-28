@@ -1,284 +1,281 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\buffers.c">
+    <ClCompile Include="..\library\buffers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\cfileio.c">
+    <ClCompile Include="..\library\cfileio.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\checksum.c">
+    <ClCompile Include="..\library\checksum.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrfile.c">
+    <ClCompile Include="..\library\drvrfile.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrmem.c">
+    <ClCompile Include="..\library\drvrmem.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrnet.c">
+    <ClCompile Include="..\library\drvrnet.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrsmem.c">
+    <ClCompile Include="..\library\drvrsmem.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrgsiftp.c">
+    <ClCompile Include="..\library\drvrgsiftp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\editcol.c">
+    <ClCompile Include="..\library\editcol.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\edithdu.c">
+    <ClCompile Include="..\library\edithdu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\eval_l.c">
+    <ClCompile Include="..\library\eval_l.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\eval_y.c">
+    <ClCompile Include="..\library\eval_y.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\eval_f.c">
+    <ClCompile Include="..\library\eval_f.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\fitscore.c">
+    <ClCompile Include="..\library\fitscore.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcol.c">
+    <ClCompile Include="..\library\getcol.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcolb.c">
+    <ClCompile Include="..\library\getcolb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcold.c">
+    <ClCompile Include="..\library\getcold.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcole.c">
+    <ClCompile Include="..\library\getcole.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcoli.c">
+    <ClCompile Include="..\library\getcoli.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcolj.c">
+    <ClCompile Include="..\library\getcolj.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcolk.c">
+    <ClCompile Include="..\library\getcolk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcoll.c">
+    <ClCompile Include="..\library\getcoll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcols.c">
+    <ClCompile Include="..\library\getcols.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcolsb.c">
+    <ClCompile Include="..\library\getcolsb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcoluk.c">
+    <ClCompile Include="..\library\getcoluk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcolui.c">
+    <ClCompile Include="..\library\getcolui.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getcoluj.c">
+    <ClCompile Include="..\library\getcoluj.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\getkey.c">
+    <ClCompile Include="..\library\getkey.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\group.c">
+    <ClCompile Include="..\library\group.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\grparser.c">
+    <ClCompile Include="..\library\grparser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\histo.c">
+    <ClCompile Include="..\library\histo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\iraffits.c">
+    <ClCompile Include="..\library\iraffits.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\modkey.c">
+    <ClCompile Include="..\library\modkey.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcol.c">
+    <ClCompile Include="..\library\putcol.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcolb.c">
+    <ClCompile Include="..\library\putcolb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcold.c">
+    <ClCompile Include="..\library\putcold.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcole.c">
+    <ClCompile Include="..\library\putcole.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcoli.c">
+    <ClCompile Include="..\library\putcoli.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcolj.c">
+    <ClCompile Include="..\library\putcolj.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcolk.c">
+    <ClCompile Include="..\library\putcolk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcoluk.c">
+    <ClCompile Include="..\library\putcoluk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcoll.c">
+    <ClCompile Include="..\library\putcoll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcols.c">
+    <ClCompile Include="..\library\putcols.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcolsb.c">
+    <ClCompile Include="..\library\putcolsb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcolu.c">
+    <ClCompile Include="..\library\putcolu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcolui.c">
+    <ClCompile Include="..\library\putcolui.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putcoluj.c">
+    <ClCompile Include="..\library\putcoluj.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\putkey.c">
+    <ClCompile Include="..\library\putkey.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\region.c">
+    <ClCompile Include="..\library\region.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\scalnull.c">
+    <ClCompile Include="..\library\scalnull.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\swapproc.c">
+    <ClCompile Include="..\library\swapproc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\wcssub.c">
+    <ClCompile Include="..\library\wcssub.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\wcsutil.c">
+    <ClCompile Include="..\library\wcsutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\imcompress.c">
+    <ClCompile Include="..\library\imcompress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\quantize.c">
+    <ClCompile Include="..\library\quantize.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\ricecomp.c">
+    <ClCompile Include="..\library\ricecomp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\pliocomp.c">
+    <ClCompile Include="..\library\pliocomp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\fits_hcompress.c">
+    <ClCompile Include="..\library\fits_hcompress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\fits_hdecompress.c">
+    <ClCompile Include="..\library\fits_hdecompress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\zuncompress.c">
+    <ClCompile Include="..\library\zlib\zuncompress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\zcompress.c">
+    <ClCompile Include="..\library\zlib\zcompress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\adler32.c">
+    <ClCompile Include="..\library\zlib\adler32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\crc32.c">
+    <ClCompile Include="..\library\zlib\crc32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\inffast.c">
+    <ClCompile Include="..\library\zlib\inffast.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\inftrees.c">
+    <ClCompile Include="..\library\zlib\inftrees.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\trees.c">
+    <ClCompile Include="..\library\zlib\trees.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\zutil.c">
+    <ClCompile Include="..\library\zlib\zutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\deflate.c">
+    <ClCompile Include="..\library\zlib\deflate.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\infback.c">
+    <ClCompile Include="..\library\zlib\infback.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\inflate.c">
+    <ClCompile Include="..\library\zlib\inflate.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\zlib\uncompr.c">
+    <ClCompile Include="..\library\zlib\uncompr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\simplerng.c">
+    <ClCompile Include="..\library\simplerng.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\f77_wrap1.c">
+    <ClCompile Include="..\library\f77_wrap1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\f77_wrap2.c">
+    <ClCompile Include="..\library\f77_wrap2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\f77_wrap3.c">
+    <ClCompile Include="..\library\f77_wrap3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\f77_wrap4.c">
+    <ClCompile Include="..\library\f77_wrap4.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\cfortran.h">
+    <ClInclude Include="..\library\cfortran.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrgsiftp.h">
+    <ClInclude Include="..\library\drvrgsiftp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\drvrsmem.h">
+    <ClInclude Include="..\library\drvrsmem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\eval_defs.h">
+    <ClInclude Include="..\library\eval_defs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\eval_tab.h">
+    <ClInclude Include="..\library\eval_tab.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\f77_wrap.h">
+    <ClInclude Include="..\library\f77_wrap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\fitsio.h">
+    <ClInclude Include="..\library\fitsio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\fitsio2.h">
+    <ClInclude Include="..\library\fitsio2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\fpack.h">
+    <ClInclude Include="..\library\fpack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\group.h">
+    <ClInclude Include="..\library\group.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\grparser.h">
+    <ClInclude Include="..\library\grparser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\longnam.h">
+    <ClInclude Include="..\library\longnam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\region.h">
+    <ClInclude Include="..\library\region.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\simplerng.h">
+    <ClInclude Include="..\library\simplerng.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\unistd.h">
+    <ClInclude Include="..\library\unistd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="D:\Miguel\GitHub\fitsliberator\cfitsio\library\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

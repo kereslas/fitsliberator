@@ -10,6 +10,7 @@
     <ProjectGuid>{0218153E-C079-4B28-8CB4-45737E86AB09}</ProjectGuid>
     <RootNamespace>libtiff</RootNamespace>
     <Keyword>MakeFileProj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
