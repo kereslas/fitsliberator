@@ -17,7 +17,7 @@
 ;-------------------------------------------------------------------------------
 
 !define PRODUCT_NAME            "FITS Liberator"
-!define PRODUCT_VERSION         "3.0.1"
+!define PRODUCT_VERSION         "3.0.1 ( CFITSIO 3.540 )"
 !define PRODUCT_PUBLISHER       "ESO/ESA/NASA"
 !define PRODUCT_WEB_SITE        "http://spacetelescope.org/projects/fits_liberator/"
 !define PRODUCT_UNINST_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
