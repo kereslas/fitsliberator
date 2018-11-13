@@ -76,7 +76,7 @@
     <Link>
       <AdditionalDependencies>cfitsio.lib;pds_toolbox.lib;tinyxml.lib;gdiplus.lib;version.lib;shlwapi.lib;libtiff.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\..\cfitsio\binaries;..\..\..\boost\binaries;..\..\..\tinyxml\binaries;..\..\..\pds_toolbox\binaries;..\..\..\tbb\ia32\vc9\lib;..\..\..\libtiff\library\libtiff;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\cfitsio\Debug;..\..\..\boost\binaries;..\..\..\tinyxml\binaries;..\..\..\pds_toolbox\binaries;..\..\..\tbb\ia32\vc9\lib;..\..\..\libtiff\library\libtiff;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)FitsLiberator.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
@@ -127,7 +127,7 @@ copy ..\..\..\cfitsio\project\Debug\cfitsio.dll ..\..\binaries\</Command>
     <Link>
       <AdditionalDependencies>cfitsio.lib;pds_toolbox.lib;tinyxml.lib;gdiplus.lib;version.lib;shlwapi.lib;libtiff.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\..\cfitsio\binaries;..\..\..\boost\binaries;..\..\..\tinyxml\binaries;..\..\..\pds_toolbox\binaries;..\..\..\tbb\ia32\vc9\lib;..\..\..\libtiff\library\libtiff;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\cfitsio\Release;..\..\..\boost\binaries;..\..\..\tinyxml\binaries;..\..\..\pds_toolbox\binaries;..\..\..\tbb\ia32\vc9\lib;..\..\..\libtiff\library\libtiff;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <LargeAddressAware>true</LargeAddressAware>

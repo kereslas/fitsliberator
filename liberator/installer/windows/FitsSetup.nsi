@@ -282,14 +282,23 @@ SectionEnd
 
 Section "Core Components"
 	; Runtime
-    File /a "/oname=$TEMP\vcredist_x86.exe" "vcredist_x86.exe"
-    ExecWait '"$TEMP\vcredist_x86.exe" /q:a /c:"msiexec /i vcredist.msi /qn /l*v %temp%\vcredist_x86.log"'
-    Delete "$TEMP\vcredist_x86.exe"
+    File /a "/oname=$TEMP\vc_redist.x86.exe" "vc_redist.x86.exe"
+    ExecWait '"$TEMP\vc_redist.x86.exe" /q:a /c:"msiexec /i vc_redist.msi /qn /l*v %temp%\vc_redist.x86.log"'
+    Delete "$TEMP\vc_redist.x86.exe"
     ClearErrors
 
     ; FITS Liberator plug-in
     ${InstallFile} "${SETUP_ROOT}"  "gdiplus.dll"                			"gdiplus.dll"
     ${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\FitsLiberator.exe"		"FitsLiberator.exe"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_date_time-vc141-mt-gd-x32-1_68.dll"		"boost_date_time-vc141-mt-gd-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_date_time-vc141-mt-x32-1_68.dll"		"boost_date_time-vc141-mt-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_regex-vc141-mt-gd-x32-1_68.dll"		"boost_regex-vc141-mt-gd-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_regex-vc141-mt-x32-1_68.dll"		"boost_regex-vc141-mt-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_system-vc141-mt-gd-x32-1_68.dll"		"boost_system-vc141-mt-gd-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_system-vc141-mt-x32-1_68.dll"		"boost_system-vc141-mt-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_thread-vc141-mt-gd-x32-1_68.dll"		"boost_thread-vc141-mt-gd-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\boost_thread-vc141-mt-x32-1_68.dll"		"boost_thread-vc141-mt-x32-1_68.dll"
+	${InstallFile} "${SETUP_ROOT}"  "..\..\binaries\cfitsio.dll"		"cfitsio.dll"
     ${InstallFile} "${SETUP_ROOT}"  "..\..\Documentation\UserGuide.pdf"				"UserGuide.pdf"
     ${Directory}   "${SETUP_ROOT}"    
     

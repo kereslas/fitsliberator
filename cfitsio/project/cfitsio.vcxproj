@@ -116,8 +116,8 @@
       <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>D:/Miguel/GitHub/fitsliberator/cfitsio/project/Debug/cfitsio.lib</ImportLibrary>
-      <ProgramDataBaseFile>D:/Miguel/GitHub/fitsliberator/cfitsio/project/Debug/cfitsio.pdb</ProgramDataBaseFile>
+      <ImportLibrary>../Debug/cfitsio.lib</ImportLibrary>
+      <ProgramDataBaseFile>../Debug/cfitsio.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -164,8 +164,8 @@ xcopy .\Debug\cfitsio.dll ..\..\liberator\binaries /y
       <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>D:/Miguel/GitHub/fitsliberator/cfitsio/project/Release/cfitsio.lib</ImportLibrary>
-      <ProgramDataBaseFile>D:/Miguel/GitHub/fitsliberator/cfitsio/project/Release/cfitsio.pdb</ProgramDataBaseFile>
+      <ImportLibrary>../Release/cfitsio.lib</ImportLibrary>
+      <ProgramDataBaseFile>../Release/cfitsio.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
